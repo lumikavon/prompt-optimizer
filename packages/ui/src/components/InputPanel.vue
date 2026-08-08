@@ -137,7 +137,7 @@
             :model-value="modelValue"
             @update:model-value="$emit('update:modelValue', $event)"
             :placeholder="placeholder"
-            :autosize="{ minRows: 4, maxRows: 12 }"
+            :autosize="{ minRows: 6, maxRows: 12 }"
             clearable
             show-count
             :data-testid="`${testIdPrefix}-input`"
@@ -158,32 +158,17 @@
             @update:value="$emit('update:modelValue', $event)"
             type="textarea"
             :placeholder="placeholder"
-            :rows="4"
-            :autosize="{ minRows: 4, maxRows: 12 }"
+            :rows="6"
+            :autosize="{ minRows: 6, maxRows: 12 }"
             clearable
             show-count
             :data-testid="`${testIdPrefix}-input`"
         />
 
-        <!-- 控制面板 -->
+        <!-- 控制面板：窄屏下自动换行（responsive="screen"），控件不溢出 -->
         <NGrid :cols="24" :x-gap="8" responsive="screen">
-            <!-- 模型选择 -->
-            <NGridItem :span="6" :xs="24" :sm="6">
-                <NSpace vertical :size="8">
-                    <NFlex align="center" :size="6" :wrap="false" class="input-panel-label-row">
-                        <NText
-                            :depth="2"
-                            style="font-size: 14px; font-weight: 500; flex-shrink: 0;"
-                            >{{ modelLabel }}</NText
-                        >
-                        <slot name="model-label-extra"></slot>
-                    </NFlex>
-                    <slot name="model-select"></slot>
-                </NSpace>
-            </NGridItem>
-
             <!-- 提示词模板选择 -->
-            <NGridItem v-if="templateLabel" :span="11" :xs="24" :sm="11">
+            <NGridItem v-if="templateLabel" :span="10" :xs="24" :sm="11">
                 <NSpace vertical :size="8">
                     <NText
                         :depth="2"
@@ -196,9 +181,9 @@
 
             <!-- 控制按钮组 -->
             <NGridItem
-                :span="templateLabel ? 2 : 13"
+                :span="templateLabel ? 7 : 17"
                 :xs="24"
-                :sm="templateLabel ? 2 : 13"
+                :sm="templateLabel ? 7 : 17"
             >
                 <NSpace vertical :size="8" align="end">
                     <slot name="control-buttons"></slot>
@@ -206,13 +191,14 @@
             </NGridItem>
 
             <!-- 提交按钮区域 -->
-            <NGridItem :span="5" :xs="24" :sm="5" class="flex items-end">
+            <NGridItem :span="7" :xs="24" :sm="6" class="flex items-end">
                 <NSpace :size="8" justify="end" style="width: 100%">
                     <!-- 分析按钮（与优化同级） -->
                     <NButton
                         v-if="showAnalyzeButton"
                         type="default"
                         size="medium"
+                        class="input-panel-action-btn"
                         :data-testid="`${testIdPrefix}-analyze-button`"
                         @click="$emit('analyze')"
                         :loading="analyzeLoading"
@@ -224,6 +210,7 @@
                     <NButton
                         type="primary"
                         size="medium"
+                        class="input-panel-action-btn"
                         :data-testid="`${testIdPrefix}-optimize-button`"
                         @click="$emit('submit')"
                         :loading="loading"
@@ -275,20 +262,16 @@ import { VariableAwareInput } from "./variable-extraction";
  * 1. 提供输入框用于用户输入内容
  * 2. 支持全屏编辑模式
  * 3. 支持变量提取功能 (可选)
- * 4. 提供模型选择、模板选择等控制面板
+ * 4. 提供模板选择、控制按钮等面板（模型选择已移除，模型配置统一在"优化模型配置"弹窗）
  */
 
 interface Props {
     /** 输入框的值 */
     modelValue: string;
-    /** 选中的模型 */
-    selectedModel: string;
     /** 面板标题 */
     label: string;
     /** 占位符文本 */
     placeholder?: string;
-    /** 模型选择标签 */
-    modelLabel: string;
     /** 模板选择标签 */
     templateLabel?: string;
     /** 提交按钮文本 */
@@ -356,7 +339,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
     "update:modelValue": [value: string];
-    "update:selectedModel": [value: string];
     submit: [];
     analyze: [];
     configModel: [];
@@ -395,3 +377,29 @@ const handleAddMissingVariable = (varName: string) => {
     emit("add-missing-variable", varName);
 };
 </script>
+
+<style scoped>
+/*
+ * 修复 naive-ui NInput textarea autosize 的 min-height 失效问题：
+ * 在 naive-ui 中，textarea 的最小高度由镜像元素（.n-input__textarea-mirror）的
+ * min-height 决定，而该样式仅通过 VResizeObserver（监听镜像的下一个兄弟元素）写入。
+ * 由于镜像元素是最后一个子节点，观察者从未触发，导致 minRows 不生效、输入框坍缩为一行。
+ * 这里基于主题变量直接为镜像设置 min/max-height，保证"原始提示词"输入框按预期高度渲染。
+ */
+:deep(.n-input__textarea-mirror) {
+    min-height: calc(
+        var(--n-padding-vertical, 6.5px) * 2 +
+        var(--n-line-height-textarea, 1.6) * var(--n-font-size, 14px) * 6
+    );
+    max-height: calc(
+        var(--n-padding-vertical, 6.5px) * 2 +
+        var(--n-line-height-textarea, 1.6) * var(--n-font-size, 14px) * 12
+    );
+}
+
+/* 提交按钮：窄屏下允许文字换行，避免按钮溢出容器 */
+.input-panel-action-btn {
+    white-space: normal;
+    min-width: 0;
+}
+</style>

@@ -4,7 +4,6 @@ import type { PromptRecordChain } from '@prompt-optimizer/core'
 import { createTestPinia, createPreferenceServiceStub } from '../../../utils/pinia-test-helpers'
 import { useSessionManager } from '../../../../src/stores/session/useSessionManager'
 import { useBasicSystemSession } from '../../../../src/stores/session/useBasicSystemSession'
-import { useProMultiMessageSession } from '../../../../src/stores/session/useProMultiMessageSession'
 import { useImageImage2ImageSession } from '../../../../src/stores/session/useImageImage2ImageSession'
 import { useImageMultiImageSession } from '../../../../src/stores/session/useImageMultiImageSession'
 
@@ -177,9 +176,8 @@ describe('SessionManager', () => {
     const { pinia } = createTestPinia()
     const manager = useSessionManager(pinia)
     manager.injectSubModeReaders({
-      getFunctionMode: () => 'pro',
+      getFunctionMode: () => 'basic',
       getBasicSubMode: () => 'system',
-      getProSubMode: () => 'multi',
       getImageSubMode: () => 'multiimage',
     })
 
@@ -215,32 +213,6 @@ describe('SessionManager', () => {
       d: { result: '', reasoning: '' },
     }
     basicSystem.lastActiveAt = 1000
-
-    const proMulti = useProMultiMessageSession(pinia)
-    proMulti.conversationMessagesSnapshot = [
-      {
-        id: 'msg-1',
-        role: 'system',
-        content: 'Current message',
-        originalContent: 'Original message',
-      },
-    ]
-    proMulti.selectedMessageId = 'msg-1'
-    proMulti.messageChainMap = { 'msg-1': 'message-chain' }
-    proMulti.temporaryVariables = { audience: 'builders' }
-    proMulti.testVariants = [
-      { id: 'a', version: 'workspace', modelKey: 'model-pro' },
-      { id: 'b', version: 'workspace', modelKey: '' },
-      { id: 'c', version: 'workspace', modelKey: '' },
-      { id: 'd', version: 'workspace', modelKey: '' },
-    ]
-    proMulti.testVariantResults = {
-      a: { result: 'Conversation result', reasoning: '' },
-      b: { result: '', reasoning: '' },
-      c: { result: '', reasoning: '' },
-      d: { result: '', reasoning: '' },
-    }
-    proMulti.lastActiveAt = 2000
 
     const multiImage = useImageMultiImageSession(pinia)
     multiImage.originalPrompt = 'Image prompt'
@@ -313,22 +285,11 @@ describe('SessionManager', () => {
 
     const activeSession = manager.getPromptSession()
     expect(activeSession).toMatchObject({
-      id: 'implicit:pro-conversation',
-      modeKey: 'pro-conversation',
-      optimization: {
-        id: 'message-chain',
-        target: {
-          kind: 'message',
-          id: 'msg-1',
-          role: 'system',
-        },
+      id: 'implicit:basic-system',
+      modeKey: 'basic-system',
+      draft: {
+        content: { kind: 'text', text: 'Optimized system prompt' },
       },
-    })
-    expect(activeSession.testRuns[0].runs[0]).toMatchObject({
-      input: {
-        parameters: { audience: 'builders' },
-      },
-      output: { text: 'Conversation result' },
     })
 
     const imageSession = manager.getPromptSession('image-multiimage')
@@ -346,10 +307,9 @@ describe('SessionManager', () => {
 
     const registry = manager.getPromptSessionRegistry()
     expect(registry).toMatchObject({
-      activeSessionId: 'implicit:pro-conversation',
+      activeSessionId: 'implicit:basic-system',
       activeSessionIdByMode: {
         'basic-system': 'implicit:basic-system',
-        'pro-conversation': 'implicit:pro-conversation',
         'image-multiimage': 'implicit:image-multiimage',
       },
       sessions: expect.arrayContaining([
@@ -369,7 +329,7 @@ describe('SessionManager', () => {
       ]),
     })
     expect(registry.updatedAt).toBeGreaterThanOrEqual(3000)
-    expect(manager.getAllPromptSessions()).toHaveLength(7)
+    expect(manager.getAllPromptSessions()).toHaveLength(5)
   })
 
   it('hydrates history chains without changing the synchronous session projection', async () => {
@@ -524,13 +484,6 @@ describe('SessionManager', () => {
     basicSystem.clearContent({ persist: false })
     expect(basicSystem.assetBinding).toBeUndefined()
     expect(basicSystem.origin).toBeUndefined()
-
-    const proMulti = useProMultiMessageSession(pinia)
-    proMulti.assetBinding = { assetId: 'asset-pro', versionId: 'v2', status: 'linked' }
-    proMulti.origin = { kind: 'favorite', id: 'favorite-pro' }
-    proMulti.clearContent({ persist: false })
-    expect(proMulti.assetBinding).toBeUndefined()
-    expect(proMulti.origin).toBeUndefined()
 
     const imageImage = useImageImage2ImageSession(pinia)
     imageImage.assetBinding = { assetId: 'asset-image', versionId: 'v3', status: 'linked' }

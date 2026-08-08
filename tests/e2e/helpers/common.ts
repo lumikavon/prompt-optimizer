@@ -1,5 +1,52 @@
 import { expect, type Page } from '@playwright/test'
 
+const IMAGE_SESSION_STORE_IDS: Record<string, string> = {
+  'image-text2image': 'imageText2ImageSession',
+  'image-image2image': 'imageImage2ImageSession',
+  'image-multiimage': 'imageMultiImageSession',
+}
+
+/**
+ * 通过 Pinia session store 直接设置工作区的文本模型（不依赖已被移除的模型下拉 UI）。
+ * 与 workspace-clear-content.spec 中的 store seeding 方式一致。
+ * 调用方需确保目标工作区已挂载（store 已注册）。
+ */
+export async function seedTextModelKey(
+  page: Page,
+  mode: 'image-text2image' | 'image-image2image' | 'image-multiimage',
+  modelKey: string,
+): Promise<void> {
+  const storeId = IMAGE_SESSION_STORE_IDS[mode]
+  if (!storeId) throw new Error(`seedTextModelKey: unsupported mode ${mode}`)
+
+  await page.evaluate(
+    async ({ storeId, modelKey }) => {
+      const app = (document.querySelector('#app') as any)?.__vue_app__
+      const pinia = app?.config?.globalProperties?.$pinia
+      const store = pinia?._s?.get(storeId)
+      if (!store) throw new Error(`seedTextModelKey: store not found: ${storeId}`)
+      store.updateTextModel?.(modelKey)
+      await store.saveSession?.()
+    },
+    { storeId, modelKey },
+  )
+}
+
+/**
+ * 读取 Pinia 中 image session store 的 selectedTextModelKey（用于验证持久化恢复）。
+ */
+export async function readSelectedTextModelKey(
+  page: Page,
+  mode: 'image-text2image' | 'image-image2image' | 'image-multiimage',
+): Promise<string> {
+  const storeId = IMAGE_SESSION_STORE_IDS[mode]
+  return page.evaluate(({ storeId }) => {
+    const app = (document.querySelector('#app') as any)?.__vue_app__
+    const pinia = app?.config?.globalProperties?.$pinia
+    return String(pinia?.state?.value?.[storeId]?.selectedTextModelKey ?? '')
+  }, { storeId })
+}
+
 /**
  * 等待应用加载完成
  */

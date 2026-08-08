@@ -12,8 +12,6 @@ import { readonly, computed, type Ref } from 'vue'
 import { storeToRefs, getActivePinia } from 'pinia'
 import { useTemporaryVariablesStore } from '../../stores/temporaryVariables'
 import { useSessionManager } from '../../stores/session/useSessionManager'
-import { useProVariableSession } from '../../stores/session/useProVariableSession'
-import { useProMultiMessageSession } from '../../stores/session/useProMultiMessageSession'
 import { useImageText2ImageSession } from '../../stores/session/useImageText2ImageSession'
 import { useImageImage2ImageSession } from '../../stores/session/useImageImage2ImageSession'
 import { useImageMultiImageSession } from '../../stores/session/useImageMultiImageSession'
@@ -89,14 +87,10 @@ export function useTemporaryVariables(): TemporaryVariablesManager {
   const { temporaryVariables: globalTempVars } = storeToRefs(globalStore)
 
   const sessionManager = useSessionManager()
-  const proVariableSession = useProVariableSession()
-  const proMultiSession = useProMultiMessageSession()
   const imageText2ImageSession = useImageText2ImageSession()
   const imageImage2ImageSession = useImageImage2ImageSession()
   const imageMultiImageSession = useImageMultiImageSession()
 
-  const { temporaryVariables: proVariableTempVars } = storeToRefs(proVariableSession)
-  const { temporaryVariables: proMultiTempVars } = storeToRefs(proMultiSession)
   const { temporaryVariables: imageText2ImageTempVars } = storeToRefs(imageText2ImageSession)
   const { temporaryVariables: imageImage2ImageTempVars } = storeToRefs(imageImage2ImageSession)
   const { temporaryVariables: imageMultiImageTempVars } = storeToRefs(imageMultiImageSession)
@@ -105,10 +99,6 @@ export function useTemporaryVariables(): TemporaryVariablesManager {
 
   const getActiveSessionTempRef = () => {
     switch (activeSubModeKey.value) {
-      case 'pro-variable':
-        return proVariableTempVars
-      case 'pro-multi':
-        return proMultiTempVars
       case 'image-text2image':
         return imageText2ImageTempVars
       case 'image-image2image':
@@ -130,12 +120,6 @@ export function useTemporaryVariables(): TemporaryVariablesManager {
 
   const setVariable = (name: string, value: string) => {
     switch (activeSubModeKey.value) {
-      case 'pro-variable':
-        proVariableSession.setTemporaryVariable(name, value)
-        return
-      case 'pro-multi':
-        proMultiSession.setTemporaryVariable(name, value)
-        return
       case 'image-text2image':
         imageText2ImageSession.setTemporaryVariable(name, value)
         return
@@ -152,10 +136,6 @@ export function useTemporaryVariables(): TemporaryVariablesManager {
 
   const getVariable = (name: string): string | undefined => {
     switch (activeSubModeKey.value) {
-      case 'pro-variable':
-        return proVariableSession.getTemporaryVariable(name)
-      case 'pro-multi':
-        return proMultiSession.getTemporaryVariable(name)
       case 'image-text2image':
         return imageText2ImageSession.getTemporaryVariable(name)
       case 'image-image2image':
@@ -169,12 +149,6 @@ export function useTemporaryVariables(): TemporaryVariablesManager {
 
   const deleteVariable = (name: string) => {
     switch (activeSubModeKey.value) {
-      case 'pro-variable':
-        proVariableSession.deleteTemporaryVariable(name)
-        return
-      case 'pro-multi':
-        proMultiSession.deleteTemporaryVariable(name)
-        return
       case 'image-text2image':
         imageText2ImageSession.deleteTemporaryVariable(name)
         return
@@ -191,12 +165,6 @@ export function useTemporaryVariables(): TemporaryVariablesManager {
 
   const clearAll = () => {
     switch (activeSubModeKey.value) {
-      case 'pro-variable':
-        proVariableSession.clearTemporaryVariables()
-        return
-      case 'pro-multi':
-        proMultiSession.clearTemporaryVariables()
-        return
       case 'image-text2image':
         imageText2ImageSession.clearTemporaryVariables()
         return

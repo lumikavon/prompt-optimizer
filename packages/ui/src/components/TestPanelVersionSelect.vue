@@ -116,7 +116,9 @@ const handleUpdate = (nextValue: string | number | null) => {
 
 <style scoped>
 .test-panel-version-select {
-  width: 108px;
+  width: 100%;
+  min-width: 100px;
+  max-width: 180px;
 }
 
 .test-panel-version-select__menu-label {

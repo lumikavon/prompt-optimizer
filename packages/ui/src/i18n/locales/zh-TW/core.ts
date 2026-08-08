@@ -1,4 +1,26 @@
 const messages = {
+  "aiConfig": {
+    "title": "優化模型配置",
+    "baseUrl": "Base URL",
+    "apiKey": "API Key",
+    "model": "模型",
+    "configPath": "設定檔",
+    "unknownPath": "未知",
+    "saveSuccess": "配置已儲存",
+    "saveFailed": "儲存失敗",
+    "restartNote": "提示：重啟應用後新配置生效",
+    "loadFailed": "讀取配置失敗",
+    "testButton": "測試連線",
+    "testing": "測試中...",
+    "testSuccess": "連線成功",
+    "testFailed": "連線失敗"
+  },
+  "windowControls": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "restore": "還原",
+    "close": "關閉"
+  },
   "common": {
     "loading": "載入中...",
     "save": "儲存",
@@ -14,6 +36,7 @@ const messages = {
     "language": "語言",
     "templates": "功能提示詞",
     "history": "歷史紀錄",
+    "modelConfig": "模型配置",
     "close": "關閉",
     "test": "測試",
     "enable": "啟用",

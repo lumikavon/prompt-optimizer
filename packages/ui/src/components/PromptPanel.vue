@@ -14,9 +14,9 @@
             :segmented="false"
             class="flex-none"
             content-style="padding: 0;"
-            :style="{ maxHeight: '120px', overflow: 'visible' }"
+            :style="{ overflow: 'hidden' }"
         >
-            <NFlex justify="space-between" align="flex-start" :wrap="false">
+            <NFlex justify="space-between" align="flex-start" :wrap="true" class="prompt-panel-header">
                 <!-- 左侧：标题和版本 -->
                 <NSpace vertical :size="8" class="flex-1 min-w-0">
                     <NSpace align="center" :size="12">
@@ -69,7 +69,7 @@
                 </NSpace>
 
                 <!-- 右侧：操作按钮 -->
-                <NSpace align="center" :size="8" class="flex-shrink-0">
+                <NSpace align="center" :size="8" :wrap="true" class="flex-shrink-0 prompt-panel-actions">
                     <!-- 预览按钮 -->
                     <NButton
                         v-if="showPreview && optimizedPrompt"
@@ -980,5 +980,15 @@ defineExpose({
     display: flex;
     align-items: center;
     flex-shrink: 0;
+}
+
+/* 标题区：允许换行，窄窗下按钮自动折行到下一行 */
+.prompt-panel-header {
+    gap: 8px 12px;
+}
+
+.prompt-panel-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 </style>

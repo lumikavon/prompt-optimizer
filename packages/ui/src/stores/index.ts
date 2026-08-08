@@ -34,16 +34,6 @@ export {
 } from './session/useBasicUserSession'
 
 export {
-  useProMultiMessageSession,
-  type ProMultiMessageSessionApi,
-} from './session/useProMultiMessageSession'
-
-export {
-  useProVariableSession,
-  type ProVariableSessionApi,
-} from './session/useProVariableSession'
-
-export {
   useImageText2ImageSession,
   type ImageText2ImageSessionApi,
 } from './session/useImageText2ImageSession'

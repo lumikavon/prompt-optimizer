@@ -4,16 +4,15 @@ import { useGlobalSettings, type GlobalSettingsApi } from '../stores/settings/us
 import { DEFAULT_WORKSPACE_PATH } from './workspaceRoutes'
 
 export const getInitialRouteFromGlobalSettings = (globalSettings: GlobalSettingsApi) => {
-  const { functionMode, basicSubMode, proSubMode, imageSubMode } = globalSettings.state
+  const { functionMode, basicSubMode, imageSubMode } = globalSettings.state
 
   switch (functionMode) {
     case 'basic':
       return `/basic/${basicSubMode}`
-    case 'pro':
-      return `/pro/${proSubMode}`
     case 'image':
       return `/image/${imageSubMode}`
     default:
+      // 旧数据中 functionMode 可能为 'pro'（上下文模式已删除），回退到基础模式
       return DEFAULT_WORKSPACE_PATH
   }
 }

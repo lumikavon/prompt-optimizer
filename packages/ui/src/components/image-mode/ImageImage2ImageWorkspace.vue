@@ -11,7 +11,7 @@
         <div
             ref="splitRootRef"
             class="image-image2image-split"
-            :style="{ gridTemplateColumns: `${mainSplitLeftPct}% 12px 1fr` }"
+            :style="{ gridTemplateColumns: splitGridTemplateColumns }"
         >
             <!-- 左侧：提示词优化区域（文本模型） -->
             <div class="split-pane" style="min-width: 0; height: 100%; overflow: hidden;">
@@ -22,7 +22,7 @@
                 >
             <!-- 输入控制区域 - 对齐InputPanel布局 -->
             <TestSourceLinkedCard
-                :style="{ flexShrink: 0 }"
+                :style="{ flex: 1, minHeight: 0 }"
                 :feedback-key="sourceAreaFeedback.original.key"
                 :feedback-tone="sourceAreaFeedback.original.tone"
                 :source-tone="sourceAreaFeedback.original.sourceTone"
@@ -147,7 +147,7 @@
                         @update:model-value="handleOriginalPromptInput"
                         :readonly="isOptimizing"
                         :placeholder="t('imageWorkspace.input.originalPromptPlaceholder')"
-                        :autosize="{ minRows: 4, maxRows: 12 }"
+                        :autosize="{ minRows: 6, maxRows: 12 }"
                         v-bind="variableInputData"
                         clearable
                         show-count
@@ -162,8 +162,8 @@
                         :placeholder="
                             t('imageWorkspace.input.originalPromptPlaceholder')
                         "
-                        :rows="4"
-                        :autosize="{ minRows: 4, maxRows: 12 }"
+                        :rows="6"
+                        :autosize="{ minRows: 6, maxRows: 12 }"
                         clearable
                         show-count
                         :disabled="isOptimizing"
@@ -228,78 +228,8 @@
 
                     <!-- 控制面板 - 使用网格布局 -->
                     <NGrid :cols="24" :x-gap="8" responsive="screen">
-                        <!-- 文本模型选择 -->
-                        <NGridItem :span="7" :xs="24" :sm="7">
-                            <NSpace vertical :size="8">
-                                <NFlex align="center" :size="6" :wrap="false">
-                                    <NText
-                                        :depth="2"
-                                        style="font-size: 14px; font-weight: 500; flex-shrink: 0;"
-                                        >{{
-                                            t("imageWorkspace.input.textModel")
-                                        }}</NText
-                                    >
-                                    <TextModelQuickSwitch
-                                        :model-key="selectedTextModelKey"
-                                        :options="textModelOptions"
-                                        :refresh-models="modelSelection.refreshTextModels"
-                                        :disabled="isOptimizing"
-                                    />
-                                </NFlex>
-                                <template v-if="appOpenModelManager">
-                                    <SelectWithConfig
-                                        data-testid="image-image2image-text-model-select"
-                                        v-model="selectedTextModelKey"
-                                        :options="textModelOptions"
-                                        :getPrimary="OptionAccessors.getPrimary"
-                                        :getSecondary="
-                                            OptionAccessors.getSecondary
-                                        "
-                                        :getValue="OptionAccessors.getValue"
-                                        :placeholder="
-                                            t(
-                                                'imageWorkspace.input.modelPlaceholder',
-                                            )
-                                        "
-                                        size="medium"
-                                        :disabled="isOptimizing"
-                                        filterable
-                                        :show-config-action="true"
-                                        :show-empty-config-c-t-a="true"
-                                        @focus="handleTextModelSelectFocus"
-                                        @config="
-                                            () =>
-                                                appOpenModelManager &&
-                                                appOpenModelManager('text')
-                                        "
-                                    />
-                                </template>
-                                <template v-else>
-                                    <SelectWithConfig
-                                        data-testid="image-image2image-text-model-select"
-                                        v-model="selectedTextModelKey"
-                                        :options="textModelOptions"
-                                        :getPrimary="OptionAccessors.getPrimary"
-                                        :getSecondary="
-                                            OptionAccessors.getSecondary
-                                        "
-                                        :getValue="OptionAccessors.getValue"
-                                        :placeholder="
-                                            t(
-                                                'imageWorkspace.input.modelPlaceholder',
-                                            )
-                                        "
-                                        size="medium"
-                                        :disabled="isOptimizing"
-                                        filterable
-                                        @focus="handleTextModelSelectFocus"
-                                    />
-                                </template>
-                            </NSpace>
-                        </NGridItem>
-
                         <!-- 优化模板选择 -->
-                        <NGridItem :span="11" :xs="24" :sm="11">
+                        <NGridItem :span="18" :xs="24" :sm="18">
                             <NSpace vertical :size="8">
                                 <NText
                                     :depth="2"
@@ -399,9 +329,24 @@
                 </NSpace>
             </TestSourceLinkedCard>
 
-            <!-- 优化结果区域 - 使用与基础模式一致的卡片容器 -->
+                </NFlex>
+            </div>
+
+            <div
+                class="split-divider"
+                role="separator"
+                tabindex="0"
+                :aria-valuemin="25"
+                :aria-valuemax="50"
+                :aria-valuenow="mainSplitLeftPct"
+                @pointerdown="onSplitPointerDown"
+                @keydown="onSplitKeydown"
+            />
+
+            <!-- 右侧：优化工作区 -->
+            <div class="split-pane" style="min-width: 0; height: 100%; overflow: hidden;">
             <TestSourceLinkedCard
-                :style="{ flex: 1, minHeight: '200px', overflow: 'hidden' }"
+                :style="{ height: '100%', minHeight: 0, overflow: 'hidden' }"
                 content-style="height: 100%; max-height: 100%; overflow: hidden;"
                 :feedback-key="sourceAreaFeedback.workspace.key"
                 :feedback-tone="sourceAreaFeedback.workspace.tone"
@@ -430,264 +375,12 @@
                     @iterate="handleIteratePrompt"
                     @openTemplateManager="onOpenTemplateManager"
                     @switchVersion="handleSwitchVersion"
-                    @save-favorite="handleSaveFavorite"
                     @save-local-edit="handleSaveLocalEdit"
                     @apply-improvement="handleApplyImprovement"
                     @apply-patch="handleApplyPatch"
                     @open-preview="handleOpenPromptPreview"
                 />
             </TestSourceLinkedCard>
-                </NFlex>
-            </div>
-
-            <div
-                class="split-divider"
-                role="separator"
-                tabindex="0"
-                :aria-valuemin="25"
-                :aria-valuemax="50"
-                :aria-valuenow="mainSplitLeftPct"
-                @pointerdown="onSplitPointerDown"
-                @keydown="onSplitKeydown"
-            />
-
-            <!-- 右侧：图像生成测试区域（图像模型，多列 variants） -->
-            <div ref="testPaneRef" class="split-pane" style="min-width: 0; height: 100%; overflow: hidden;">
-                <NFlex vertical :style="{ height: '100%', gap: '12px' }">
-                    <TemporaryVariablesPanel
-                        :manager="temporaryVariablePanelManager"
-                        :disabled="isOptimizing"
-                        :show-generate-values="true"
-                        :is-generating="isGenerating"
-                        @generate-values="handleGenerateValues"
-                    />
-                    <!-- 顶部：列数与全局操作 -->
-                    <NCard size="small" :style="{ flexShrink: 0 }">
-                        <div class="test-area-top">
-                            <NFlex align="center" :size="8" :wrap="false" style="min-width: 0;">
-                                <NText :depth="2" class="test-area-label">
-                                    {{ t('test.layout.columns') }}：
-                                </NText>
-                                <NRadioGroup
-                                    v-model:value="testColumnCountModel"
-                                    size="small"
-                                    :disabled="isAnyVariantRunning"
-                                >
-                                    <NRadioButton :value="2">2</NRadioButton>
-                                    <NRadioButton :value="3">3</NRadioButton>
-                                    <NRadioButton :value="4" :disabled="!canUseFourColumns">4</NRadioButton>
-                                </NRadioGroup>
-                            </NFlex>
-
-                            <NFlex align="center" justify="end" :size="8" :wrap="false">
-                                <NButton
-                                    type="primary"
-                                    size="small"
-                                    :loading="isAnyVariantRunning"
-                                    :disabled="isAnyVariantRunning"
-                                    @click="runAllVariants"
-                                    :data-testid="'image-image2image-test-run-all'"
-                                >
-                                    {{ t('test.layout.runAll') }}
-                                </NButton>
-                            </NFlex>
-                        </div>
-                    </NCard>
-
-                    <!-- 配置区：与结果列对齐 -->
-                    <NCard size="small" :style="{ flexShrink: 0 }">
-                        <div class="variant-deck" :style="{ gridTemplateColumns: testGridTemplateColumns }">
-                            <div v-for="id in activeVariantIds" :key="id" class="variant-cell">
-                                <div
-                                    class="variant-cell__controls"
-                                    :class="{ 'variant-cell__controls--stacked': useStackedVariantControls }"
-                                >
-                                    <div class="variant-cell__meta">
-                                        <TestVariantSourceTag
-                                            class="variant-cell__label"
-                                            :variant-label="getVariantLabel(id)"
-                                            :selection="variantVersionModels[id].value"
-                                            :resolved-version="getVariantResolvedVersion(id)"
-                                            :labels="getTestPanelVersionLabels()"
-                                            :feedback-key="variantSourceFeedback[id].key"
-                                            :feedback-tone="variantSourceFeedback[id].tone"
-                                            @activate="activateVariantSource(id)"
-                                        />
-                                        <ImageModelQuickSwitch
-                                            :model-key="variantModelKeyModels[id].value"
-                                            :options="imageModelOptions"
-                                            :refresh-models="refreshImageModels"
-                                            :disabled="variantRunning[id]"
-                                        />
-                                    </div>
-
-                                    <div class="variant-cell__actions">
-                                        <TestPanelVersionSelect
-                                            :value="variantVersionModels[id].value"
-                                            :options="versionOptions"
-                                            :disabled="variantRunning[id]"
-                                            :test-id="getVariantVersionTestId(id)"
-                                            @update:value="(value) => handleVariantVersionChange(id, value)"
-                                        />
-
-                                        <div class="variant-cell__model">
-                                            <SelectWithConfig
-                                                :data-testid="getVariantModelTestId(id)"
-                                                :model-value="variantModelKeyModels[id].value"
-                                                @update:model-value="(value) => { variantModelKeyModels[id].value = String(value ?? '') }"
-                                                :options="imageModelOptions"
-                                                :getPrimary="OptionAccessors.getPrimary"
-                                                :getSecondary="OptionAccessors.getSecondary"
-                                                :getValue="OptionAccessors.getValue"
-                                                :placeholder="t('imageWorkspace.generation.imageModelPlaceholder')"
-                                                size="small"
-                                                :disabled="variantRunning[id]"
-                                                filterable
-                                                :show-config-action="!!appOpenModelManager"
-                                                :show-empty-config-c-t-a="true"
-                                                @config="() => appOpenModelManager && appOpenModelManager('image')"
-                                                style="min-width: 0; width: 100%;"
-                                            />
-                                        </div>
-
-                                        <div class="variant-cell__run">
-                                            <ThemedTooltip :label="t('test.layout.runThisColumn')">
-                                                <NButton
-                                                    type="primary"
-                                                    size="small"
-                                                    circle
-                                                    :loading="variantRunning[id]"
-                                                    :disabled="variantRunning[id]"
-                                                    @click="() => runVariant(id)"
-                                                    :data-testid="getVariantRunTestId(id)"
-                                                >
-                                                    <template #icon>
-                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                                                            <path d="M8 5v14l11-7z" />
-                                                        </svg>
-                                                    </template>
-                                                </NButton>
-                                            </ThemedTooltip>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </NCard>
-
-                    <!-- 结果区：多列网格（无横向滚动） -->
-                    <div class="variant-results-wrap">
-                        <div class="variant-results" :style="{ gridTemplateColumns: testGridTemplateColumns }">
-                            <NCard
-                                v-for="id in activeVariantIds"
-                                :key="id"
-                                size="small"
-                                class="variant-result-card"
-                                content-style="padding: 0; height: 100%; max-height: 100%; overflow: hidden;"
-                            >
-                                <div class="result-container">
-                                    <div class="result-body">
-                                        <template v-if="hasVariantResult(id)">
-                                            <NSpace vertical :size="12" style="padding: 12px;">
-                                                <NFlex justify="end" align="center">
-                                                    <SaveTestResultExampleButton
-                                                        sub-mode-key="image-image2image"
-                                                        :variant-id="id"
-                                                        :content="optimizedPrompt || originalPrompt"
-                                                        :original-content="originalPrompt"
-                                                        function-mode="image"
-                                                        image-sub-mode="image2image"
-                                                        :disabled="variantRunning[id]"
-                                                        :test-id="`save-test-example-image-image2image-${id}`"
-                                                    />
-                                                </NFlex>
-                                                <AppPreviewImage
-                                                    :data-testid="getVariantImageTestId(id)"
-                                                    :src="getImageSrc(getVariantResult(id)?.images?.[0])"
-                                                    object-fit="contain"
-                                                    :img-props="{
-                                                        style: {
-                                                            width: '100%',
-                                                            height: 'auto',
-                                                            display: 'block',
-                                                        },
-                                                    }"
-                                                />
-
-                                                <template v-if="getVariantResult(id)?.text">
-                                                    <NCard
-                                                        size="small"
-                                                        :title="t('imageWorkspace.results.textOutput')"
-                                                    >
-                                                        <NText
-                                                            :depth="2"
-                                                            style="white-space: pre-wrap; line-height: 1.5;"
-                                                        >
-                                                            {{ getVariantResult(id)?.text }}
-                                                        </NText>
-                                                    </NCard>
-                                                </template>
-
-                                                <ImageTokenUsage :metadata="getVariantResult(id)?.metadata" :image="getVariantResult(id)?.images?.[0]" :input-image-info="getVariantInputImageInfo(id)" />
-
-                                                <NSpace justify="center" :size="8">
-                                                    <NButton
-                                                        size="small"
-                                                        @click="downloadImageFromResult(getVariantResult(id)?.images?.[0])"
-                                                    >
-                                                        <template #icon>
-                                                            <NIcon>
-                                                                <svg
-                                                                    xmlns="http://www.w3.org/2000/svg"
-                                                                    viewBox="0 0 24 24"
-                                                                    fill="none"
-                                                                    stroke="currentColor"
-                                                                    stroke-width="2"
-                                                                >
-                                                                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                                                                </svg>
-                                                            </NIcon>
-                                                        </template>
-                                                        {{ t('imageWorkspace.results.download') }}
-                                                    </NButton>
-
-                                                    <NButton
-                                                        v-if="getVariantResult(id)?.text"
-                                                        size="small"
-                                                        secondary
-                                                        @click="copyImageText(String(getVariantResult(id)?.text || ''))"
-                                                    >
-                                                        <template #icon>
-                                                            <NIcon>
-                                                                <svg
-                                                                    xmlns="http://www.w3.org/2000/svg"
-                                                                    viewBox="0 0 24 24"
-                                                                    fill="none"
-                                                                    stroke="currentColor"
-                                                                    stroke-width="2"
-                                                                >
-                                                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                                                    <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                                                                </svg>
-                                                            </NIcon>
-                                                        </template>
-                                                        {{ t('imageWorkspace.results.copyText') }}
-                                                    </NButton>
-                                                </NSpace>
-                                            </NSpace>
-                                        </template>
-                                        <template v-else>
-                                            <NEmpty
-                                                :description="t('imageWorkspace.results.noGenerationResult')"
-                                                style="padding: 24px 12px;"
-                                            />
-                                        </template>
-                                    </div>
-                                </div>
-                            </NCard>
-                        </div>
-                    </div>
-                </NFlex>
             </div>
         </div>
 
@@ -845,9 +538,7 @@ import ThemedTooltip from '../common/ThemedTooltip.vue'
 import PromptGardenInspirationPopover from '../common/PromptGardenInspirationPopover.vue'
 import PromptGardenImportDialog from '../common/PromptGardenImportDialog.vue'
 import PromptPreviewPanel from "../PromptPreviewPanel.vue";
-import ImageModelQuickSwitch from "../ImageModelQuickSwitch.vue";
 import SelectWithConfig from "../SelectWithConfig.vue";
-import TextModelQuickSwitch from "../TextModelQuickSwitch.vue";
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
 import TestSourceLinkedCard from '../TestSourceLinkedCard.vue'
 import TestVariantSourceTag from '../TestVariantSourceTag.vue'
@@ -869,7 +560,6 @@ import { VariableAwareInput } from '../variable-extraction'
 import TemporaryVariablesPanel from '../variable/TemporaryVariablesPanel.vue'
 import VariableValuePreviewDialog from '../variable/VariableValuePreviewDialog.vue'
 import AppPreviewImage from '../media/AppPreviewImage.vue'
-import SaveTestResultExampleButton from '../SaveTestResultExampleButton.vue'
 import { useTemporaryVariables } from '../../composables/variable/useTemporaryVariables'
 import { useVariableAwareInputBridge } from '../../composables/variable/useVariableAwareInputBridge'
 import { useTestVariableManager } from '../../composables/variable/useTestVariableManager'
@@ -1233,15 +923,28 @@ const selectedIterateTemplate = computed<Template | null>({
 })
 
 // 模型选项
-const textModelOptions = modelSelection.textModelOptions
 const imageModelOptions = ref<SelectOption<ImageModelConfig>[]>([])
 
 // ==================== 主布局：可拖拽分栏（左侧 25%~50%） ====================
+// 说明：分栏使用百分比，但通过 minmax() 约束两栏的最小像素宽度，
+// 避免窗口缩小时输入栏或输出区被压碎（控件重叠/裁剪）。
 
 const splitRootRef = ref<HTMLElement | null>(null)
 const testPaneRef = ref<HTMLElement | null>(null)
 
-const clampLeftPct = (pct: number) => Math.min(50, Math.max(25, pct))
+// 分栏比例允许范围（百分比）
+const MIN_SPLIT_LEFT_PCT = 25
+const MAX_SPLIT_LEFT_PCT = 50
+// 左栏最小像素宽度（防止窄窗下输入栏被压碎）
+const MIN_SPLIT_LEFT_PX = 360
+
+const clampLeftPct = (pct: number) => Math.min(MAX_SPLIT_LEFT_PCT, Math.max(MIN_SPLIT_LEFT_PCT, pct))
+
+// 分栏网格：左栏下限随容器宽度缩放 min(360px, 50%)，避免窄窗下右栏被压得过窄；
+// 右栏 = 剩余空间（minmax(0, 1fr)），窄窗下收缩而不溢出，避免被 overflow:hidden 裁剪。
+const splitGridTemplateColumns = computed(() =>
+    `minmax(min(${MIN_SPLIT_LEFT_PX}px, ${mainSplitLeftPct.value}%), ${mainSplitLeftPct.value}%) 12px minmax(0, 1fr)`,
+)
 
 // 使用本地 draft，避免拖拽过程频繁写入持久化存储
 const mainSplitLeftPct = ref<number>(50)
@@ -1299,9 +1002,9 @@ const onSplitKeydown = (e: KeyboardEvent) => {
     e.preventDefault()
 
     if (e.key === 'Home') {
-        mainSplitLeftPct.value = 25
+        mainSplitLeftPct.value = MIN_SPLIT_LEFT_PCT
     } else if (e.key === 'End') {
-        mainSplitLeftPct.value = 50
+        mainSplitLeftPct.value = MAX_SPLIT_LEFT_PCT
     } else {
         const delta = e.key === 'ArrowLeft' ? -1 : 1
         mainSplitLeftPct.value = clampLeftPct(mainSplitLeftPct.value + delta)
@@ -1959,15 +1662,23 @@ const appOpenTemplateManager = inject<
 const appOpenModelManager = inject<
     ((tab?: "text" | "image" | "function") => void) | null
 >("openModelManager", null);
-const appHandleSaveFavorite = inject<
-    ((data: { content: string; originalContent?: string }) => void) | null
->("handleSaveFavorite", null);
 
 // 将迭代类型映射为图像迭代，并调用 App 入口
 const onOpenTemplateManager = (type: TemplateEntryType) => {
     const target: TemplateEntryType =
         type === "iterate" || type === "contextIterate" ? "imageIterate" : type;
     appOpenTemplateManager?.(target);
+};
+
+// 复制图像文本输出
+const copyImageText = async (text: string) => {
+    try {
+        await navigator.clipboard.writeText(text);
+        toast.success(t("imageWorkspace.results.copySuccess"));
+    } catch (error) {
+        console.error("Failed to copy text:", error);
+        toast.error(t("imageWorkspace.results.copyError"));
+    }
 };
 
 // 全屏编辑：复用 useFullscreen 模式，编辑 originalPrompt
@@ -2097,33 +1808,6 @@ watch(
         currentVersionId.value = '';
     },
 );
-
-// 处理收藏保存请求 - 调用 App.vue 提供的统一接口
-const handleSaveFavorite = (data: {
-    content: string;
-    originalContent?: string;
-}) => {
-    console.log("[ImageImage2ImageWorkspace] handleSaveFavorite triggered:", data);
-
-    if (appHandleSaveFavorite) {
-        appHandleSaveFavorite(data);
-    } else {
-        console.warn(
-            "[ImageImage2ImageWorkspace] handleSaveFavorite not available from App.vue",
-        );
-    }
-};
-
-// 复制图像文本输出
-const copyImageText = async (text: string) => {
-    try {
-        await navigator.clipboard.writeText(text);
-        toast.success(t("imageWorkspace.results.copySuccess"));
-    } catch (error) {
-        console.error("Failed to copy text:", error);
-        toast.error(t("imageWorkspace.results.copyError"));
-    }
-};
 
 // 处理收藏回填 - 从收藏夹恢复提示词到图像工作区
 interface RestoreFavoriteDetail {
@@ -2540,11 +2224,6 @@ const refreshTemplatesHandler = async () => {
 // 下拉获得焦点时，主动刷新模板列表，确保新建/编辑后的模板可见
 const handleTemplateSelectFocus = async () => {
     await refreshTemplatesHandler();
-};
-
-// 文本模型下拉获得焦点时刷新，确保新建/编辑后的模型立即可用
-const handleTextModelSelectFocus = async () => {
-    await refreshTextModelsHandler();
 };
 
 onMounted(async () => {

@@ -1,24 +1,25 @@
 /**
- * 路由初始化测试 - 验证所有下拉框都有值
+ * 路由初始化测试 - 验证模板下拉框有选项
  *
  * 功能：
- * - 验证各个路由初始化后，模型选择下拉框和提示词模板下拉框都有选项
+ * - 验证各个路由初始化后，提示词模板下拉框都有选项
  * - 确保数据加载正常，避免空状态
  *
  * 测试范围：
  * - Basic 模式：basic-system, basic-user
- * - Pro 模式：pro-multi, pro-variable
  * - Image 模式：text2image, image2image
+ *
+ * 说明：Pro 模式已随 UI 重构移除；优化模型/Text Model 下拉也已移除（模型统一在"优化模型配置"弹窗配置），
+ * 因此这里只验证模板下拉（优化提示词模板 / 优化模板）在各工作区都有选项。
  */
 import { test, expect } from '../fixtures'
 import { navigateToMode } from '../helpers/common'
 
 type RouteCase = {
   name: string
-  mode: 'basic' | 'pro' | 'image'
+  mode: 'basic' | 'image'
   subMode: string
   hashPath: string
-  modelLabel: RegExp
   templateLabel: RegExp
 }
 
@@ -28,48 +29,28 @@ const ROUTES: RouteCase[] = [
     mode: 'basic' as const,
     subMode: 'system' as const,
     hashPath: '/#/basic/system',
-    modelLabel: /优化模型|Optimization Model/i,
-    templateLabel: /优化提示词模板|Optimization Template/i,
+    templateLabel: /优化提示词模板|优化提示词|Optimization Template/i,
   },
   {
     name: 'basic-user',
     mode: 'basic' as const,
     subMode: 'user' as const,
     hashPath: '/#/basic/user',
-    modelLabel: /优化模型|Optimization Model/i,
-    templateLabel: /优化提示词模板|Optimization Template/i,
-  },
-  {
-    name: 'pro-multi',
-    mode: 'pro' as const,
-    subMode: 'multi' as const,
-    hashPath: '/#/pro/multi',
-    modelLabel: /优化模型|Optimization Model/i,
-    templateLabel: /优化提示词模板|Optimization Template/i,
-  },
-  {
-    name: 'pro-variable',
-    mode: 'pro' as const,
-    subMode: 'variable' as const,
-    hashPath: '/#/pro/variable',
-    modelLabel: /优化模型|Optimization Model/i,
-    templateLabel: /优化提示词模板|Optimization Template/i,
+    templateLabel: /优化提示词模板|优化提示词|Optimization Template/i,
   },
   {
     name: 'image-text2image',
     mode: 'image' as const,
     subMode: 'text2image' as const,
     hashPath: '/#/image/text2image',
-    modelLabel: /Text Model|文本模型|优化模型|Optimization Model/i,
-    templateLabel: /Optimization Template|优化.*模板/i,
+    templateLabel: /优化模板|Optimization Template/i,
   },
   {
     name: 'image-image2image',
     mode: 'image' as const,
     subMode: 'image2image' as const,
     hashPath: '/#/image/image2image',
-    modelLabel: /Text Model|文本模型|优化模型|Optimization Model/i,
-    templateLabel: /Optimization Template|优化.*模板/i,
+    templateLabel: /优化模板|Optimization Template/i,
   },
 ]
 
@@ -100,14 +81,13 @@ async function expectSelectHasOptions(page: Parameters<typeof test>[0]['page'], 
   await page.keyboard.press('Escape')
 }
 
-test.describe('Route Initialization: 模型/模板下拉框有值', () => {
+test.describe('Route Initialization: 模板下拉框有值', () => {
   for (const route of ROUTES) {
     test(route.name, async ({ page }) => {
       // ✅ 使用 navigateToMode 导航（从 / 进入，再通过 UI 切换到目标工作区）
       await navigateToMode(page, route.mode, route.subMode)
 
-      // ✅ 验证模型和模板下拉框都加载了选项
-      await expectSelectHasOptions(page, route.modelLabel)
+      // ✅ 验证模板下拉框加载了选项
       await expectSelectHasOptions(page, route.templateLabel)
     })
   }

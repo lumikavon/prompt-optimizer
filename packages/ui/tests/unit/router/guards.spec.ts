@@ -27,12 +27,13 @@ describe('router guards', () => {
   describe('parseSubModeKey', () => {
     it('parses valid sub mode paths', () => {
       expect(parseSubModeKey('/basic/system')).toBe('basic-system')
-      expect(parseSubModeKey('/pro/multi')).toBe('pro-multi')
       expect(parseSubModeKey('/image/text2image')).toBe('image-text2image')
       expect(parseSubModeKey('/image/multiimage')).toBe('image-multiimage')
     })
 
     it('returns null for invalid sub mode paths', () => {
+      // 上下文模式（Pro）已删除：/pro/* 不再视为有效工作区路由
+      expect(parseSubModeKey('/pro/multi')).toBeNull()
       expect(parseSubModeKey('/pro/system')).toBeNull()
       expect(parseSubModeKey('/image/unknown')).toBeNull()
       expect(parseSubModeKey('/other/path')).toBeNull()
@@ -44,37 +45,26 @@ describe('router guards', () => {
     it('parses and normalizes workspace routes only', () => {
       expect(parseWorkspaceRoutePath('/basic/system')?.subModeKey).toBe('basic-system')
       expect(normalizeWorkspacePath('/image/text2image')).toBe('/image/text2image')
-      expect(normalizeWorkspacePath(['/pro/variable'])).toBe('/pro/variable')
+      // 上下文模式（Pro）已删除：/pro/* 不再归一化为工作区路径
+      expect(normalizeWorkspacePath(['/pro/variable'])).toBeNull()
       expect(normalizeWorkspacePath('/favorites')).toBeNull()
       expect(normalizeWorkspacePath('/image/unknown')).toBeNull()
     })
 
     it('resolves workspace fallbacks in caller priority order', () => {
       expect(resolveWorkspacePathFallback('/favorites', '/image/multiimage', '/basic/user')).toBe('/image/multiimage')
-      expect(resolveWorkspacePathFallback(undefined, '/image/unknown', '/pro/variable')).toBe('/pro/variable')
+      // 上下文模式（Pro）已删除：所有候选无效时回退到默认工作区
+      expect(resolveWorkspacePathFallback(undefined, '/image/unknown', '/pro/variable')).toBe('/basic/system')
       expect(resolveWorkspacePathFallback('/favorites')).toBe('/basic/system')
     })
   })
 
   describe('beforeRouteSwitch', () => {
-    it('redirects legacy pro system route to multi mode', () => {
-      const result = beforeRouteSwitch(
-        createRoute('/pro/system', { query: { from: '/favorites' }, hash: '#section' }),
-        createRoute('/'),
-        undefined as never,
-      )
-
-      expect(result).toEqual({
-        path: '/pro/multi',
-        query: { from: '/favorites' },
-        hash: '#section',
-      })
-    })
-
-    it('redirects legacy pro user route to variable mode', () => {
-      const result = beforeRouteSwitch(createRoute('/pro/user'), createRoute('/'), undefined as never)
-
-      expect(result).toEqual({ path: '/pro/variable', query: {}, hash: '' })
+    it('does not redirect legacy pro routes (context mode removed)', () => {
+      // 上下文模式（Pro）已删除：旧 /pro/* 路由不再被识别，也不做重定向
+      expect(beforeRouteSwitch(createRoute('/pro/system'), createRoute('/'), undefined as never)).toBe(true)
+      expect(beforeRouteSwitch(createRoute('/pro/user'), createRoute('/'), undefined as never)).toBe(true)
+      expect(beforeRouteSwitch(createRoute('/pro/multi'), createRoute('/'), undefined as never)).toBe(true)
     })
 
     it('redirects invalid image sub mode to the default image route', () => {
@@ -100,12 +90,6 @@ describe('router guards', () => {
 
     it('allows the root route to continue', () => {
       const result = beforeRouteSwitch(createRoute('/'), createRoute('/basic/system'), undefined as never)
-
-      expect(result).toBe(true)
-    })
-
-    it('allows the favorites route to continue without workspace redirect', () => {
-      const result = beforeRouteSwitch(createRoute('/favorites'), createRoute('/basic/system'), undefined as never)
 
       expect(result).toBe(true)
     })

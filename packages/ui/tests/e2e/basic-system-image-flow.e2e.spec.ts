@@ -92,15 +92,6 @@ const FocusAnalyzeButtonStub = defineComponent({
   `,
 })
 
-const SaveTestResultExampleButtonStub = defineComponent({
-  name: 'SaveTestResultExampleButton',
-  props: {
-    disabled: { type: Boolean, default: false },
-    testId: { type: String, default: '' },
-  },
-  template: '<button class="save-test-example-stub" :data-testid="testId" :disabled="disabled">save</button>',
-})
-
 const modelManager = {
   ensureInitialized: vi.fn().mockResolvedValue(undefined),
   getAllModels: vi.fn().mockResolvedValue([]),
@@ -170,7 +161,6 @@ const createHarness = async (): Promise<Harness> => {
         TestInputSection: Passthrough,
         TestImageAttachmentControl: true,
         OutputDisplay: OutputDisplayStub,
-        SaveTestResultExampleButton: SaveTestResultExampleButtonStub,
         AnalyzeActionIcon: true,
         CompareHelpButton: true,
         CompareRoleBadge: true,
@@ -239,14 +229,12 @@ describe('BasicSystemWorkspace single-image test flow', () => {
     await wrapper.get('[data-testid="basic-system-test-run-a"]').trigger('click')
     await flushPromises()
     expect(workspace.isVariantStale('a')).toBe(false)
-    expect((wrapper.get('[data-testid="save-test-example-basic-system-a"]').element as HTMLButtonElement).disabled).toBe(false)
 
     store.testImageB64 = 'first-image'
     store.testImageMimeType = 'image/png'
     store.testImageAssetId = 'asset-first'
     await nextTick()
     expect(workspace.isVariantStale('a')).toBe(true)
-    expect((wrapper.get('[data-testid="save-test-example-basic-system-a"]').element as HTMLButtonElement).disabled).toBe(true)
 
     await wrapper.get('[data-testid="basic-system-test-run-a"]').trigger('click')
     await flushPromises()
@@ -257,7 +245,6 @@ describe('BasicSystemWorkspace single-image test flow', () => {
     store.testImageAssetId = 'asset-replacement'
     await nextTick()
     expect(workspace.isVariantStale('a')).toBe(true)
-    expect((wrapper.get('[data-testid="save-test-example-basic-system-a"]').element as HTMLButtonElement).disabled).toBe(true)
 
     await wrapper.get('[data-testid="basic-system-test-run-a"]').trigger('click')
     await flushPromises()

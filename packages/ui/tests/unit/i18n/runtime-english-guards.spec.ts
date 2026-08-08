@@ -9,17 +9,6 @@ const readUiSource = (relativePath: string) =>
   readFileSync(resolve(process.cwd(), relativePath), 'utf8')
 
 describe('ui runtime english guards', () => {
-  it('localizes favorite list item actions and relative time labels', () => {
-    const source = readUiSource('src/components/FavoriteListItem.vue')
-
-    expect(source).toMatch(/useI18n/)
-    expect(source).toMatch(/favorites\.library\.card\.edit/)
-    expect(source).toMatch(/favorites\.library\.time\.justNow/)
-    expect(source).not.toMatch(/title="复制"/)
-    expect(source).not.toMatch(/label:\s*'编辑'/)
-    expect(source).not.toMatch(/'刚刚'/)
-  })
-
   it('removes hardcoded chinese helper text from the multi-image workspace', () => {
     const source = readUiSource('src/components/image-mode/ImageMultiImageWorkspace.vue')
 
@@ -53,9 +42,7 @@ describe('ui runtime english guards', () => {
   it('keeps app-layout success and startup repair toasts locale-backed', () => {
     const source = readUiSource('src/components/app-layout/PromptOptimizerApp.vue')
 
-    expect(source).toMatch(/toast\.success\(t\('context\.saveSuccess'\)\)/)
     expect(source).toMatch(/toast\.warning\(t\('toast\.warning\.startupRepair',\s*\{\s*count:\s*report\.actions\.length\s*\}\)\)/)
-    expect(source).not.toMatch(/toast\.success\('Context updated'\)/)
     expect(source).not.toMatch(/Automatically repaired .* local storage issue\(s\) during startup\./)
 
     expect(enUS.toast.warning.startupRepair).toContain('{count}')
@@ -86,16 +73,25 @@ describe('ui runtime english guards', () => {
     expect(source).not.toMatch(/Copy failed/)
   })
 
-  it('keeps Prompt Garden warnings locale-backed', () => {
-    const source = readUiSource('src/composables/app/useAppPromptGardenImport.ts')
+  it('keeps DeepSeek advanced parameter labels locale-backed', () => {
+    const source = readUiSource('../core/src/services/llm/adapters/deepseek-adapter.ts')
 
-    expect(source).toMatch(/toast\.warning\(String\(i18n\.global\.t\('toast\.warning\.promptGardenExampleInputImageLoadFailed'\)\)\)/)
-    expect(source).toMatch(/toast\.warning\(String\(i18n\.global\.t\('toast\.warning\.promptGardenExampleInputImagesPartialLoadFailed'\)\)\)/)
-    expect(source).toMatch(/toast\.warning\(String\(i18n\.global\.t\('toast\.warning\.promptGardenFavoriteSaveFailed'\)\)\)/)
-    expect(source).toMatch(/toast\.error\(String\(i18n\.global\.t\('toast\.error\.promptGardenImportFailed'\)\)\)/)
-    expect(source).not.toMatch(/toast\.warning\('Failed to load the example input image\./)
-    expect(source).not.toMatch(/toast\.warning\('Some example input images could not be loaded\./)
-    expect(source).not.toMatch(/toast\.warning\('Prompt Garden import succeeded, but saving the favorite failed\.'\)/)
+    expect(source).toMatch(/params\.deepseek\.thinking_type\.label/)
+    expect(source).toMatch(/params\.deepseek\.thinking_type\.enabled/)
+    expect(source).toMatch(/params\.reasoning_effort\.label/)
+    expect(enUS.params.deepseek.thinking_type.enabled).toBe('Enabled')
+    expect(zhCN.params.deepseek.thinking_type.enabled).toBe('开启')
+    expect(zhTW.params.deepseek.thinking_type.enabled).toBe('開啟')
+    expect(enUS.params.reasoning_effort.label).toBe('Reasoning Effort')
+    expect(zhCN.params.reasoning_effort.label).toBe('推理强度')
+    expect(zhTW.params.reasoning_effort.label).toBe('推理強度')
+  })
+
+  it('keeps text model manager error fallbacks locale-backed', () => {
+    const source = readUiSource('src/composables/model/useTextModelManager.ts')
+
+    expect(source).toMatch(/t\('common\.error'\)/)
+    expect(source).not.toMatch(/'Unknown error'/)
   })
 
   it('keeps DeepSeek advanced parameter labels locale-backed', () => {
@@ -112,25 +108,6 @@ describe('ui runtime english guards', () => {
     expect(zhTW.params.reasoning_effort.label).toBe('推理強度')
   })
 
-  it('keeps favorites management fallbacks locale-backed', () => {
-    const categorySource = readUiSource('src/components/CategoryManager.vue')
-    const tagSource = readUiSource('src/components/TagManager.vue')
-    const favoriteEditorSource = readUiSource('src/components/FavoriteEditorForm.vue')
-    const previewSource = readUiSource('src/components/PromptGardenFavoritePreviewPanel.vue')
-
-    expect(categorySource).toMatch(/message\.warning\(t\('favorites\.manager\.messages\.unavailable'\)\)/)
-    expect(categorySource).not.toMatch(/message\.warning\('Favorites are temporarily unavailable\.'\)/)
-
-    expect(tagSource).toMatch(/getI18nErrorMessage/)
-    expect(tagSource).not.toMatch(/'Unknown error'/)
-
-    expect(favoriteEditorSource).toMatch(/getI18nErrorMessage/)
-    expect(favoriteEditorSource).not.toMatch(/'Unknown error'/)
-
-    expect(previewSource).toMatch(/getI18nErrorMessage/)
-    expect(previewSource).not.toMatch(/'Unknown error'/)
-  })
-
   it('keeps text model manager error fallbacks locale-backed', () => {
     const source = readUiSource('src/composables/model/useTextModelManager.ts')
 
@@ -138,25 +115,7 @@ describe('ui runtime english guards', () => {
     expect(source).not.toMatch(/'Unknown error'/)
   })
 
-  it('keeps text model API URL and provider guidance locale-backed', () => {
-    const source = readUiSource('src/components/TextModelEditModal.vue')
-
-    expect(source).toMatch(/ThemedTooltip/)
-    expect(source).toMatch(/modelManager\.apiUrlHintAriaLabel/)
-    expect(source).toMatch(/modelManager\.provider\.xiaomiMimoHint/)
-    expect(source).toMatch(/modelManager\.provider\.minimaxHint/)
-    expect(source).not.toMatch(/:title="t\('modelManager\.apiUrlHint'\)"/)
-
-    expect(enUS.modelManager.apiUrlHintAriaLabel).toBe('Show API URL help')
-    expect(enUS.modelManager.provider.xiaomiMimoHint).toContain('https://token-plan-cn.xiaomimimo.com/v1')
-    expect(zhCN.modelManager.provider.xiaomiMimoHint).toContain('https://token-plan-cn.xiaomimimo.com/v1')
-    expect(zhTW.modelManager.provider.xiaomiMimoHint).toContain('https://token-plan-cn.xiaomimimo.com/v1')
-    expect(enUS.modelManager.provider.minimaxHint).toContain('https://api.minimaxi.com/v1')
-    expect(zhCN.modelManager.provider.minimaxHint).toContain('https://api.minimaxi.com/v1')
-    expect(zhTW.modelManager.provider.minimaxHint).toContain('https://api.minimaxi.com/v1')
-  })
-
-  it('keeps prompt testing and test mode config free of hardcoded chinese runtime strings', () => {
+ it('keeps prompt testing and test mode config free of hardcoded chinese runtime strings', () => {
     const promptTesterSource = readUiSource('src/composables/prompt/usePromptTester.ts')
     const modeConfigSource = readUiSource('src/composables/ui/useTestModeConfig.ts')
     const responsiveLayoutSource = readUiSource('src/composables/ui/useResponsiveTestLayout.ts')

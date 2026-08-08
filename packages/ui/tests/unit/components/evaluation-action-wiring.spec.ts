@@ -18,12 +18,8 @@ const filesToCheck = [
   'components/PromptPanel.vue',
   'components/TestAreaPanel.vue',
   'components/TestResultSection.vue',
-  'components/context-mode/ContextUserTestPanel.vue',
-  'components/context-mode/ConversationTestPanel.vue',
   'components/basic-mode/BasicUserWorkspace.vue',
   'components/basic-mode/BasicSystemWorkspace.vue',
-  'components/context-mode/ContextUserWorkspace.vue',
-  'components/context-mode/ContextSystemWorkspace.vue',
   'components/image-mode/ImageText2ImageWorkspace.vue',
   'components/image-mode/ImageImage2ImageWorkspace.vue',
   'components/image-mode/ImageMultiImageWorkspace.vue',
@@ -57,8 +53,6 @@ const requirements: ComponentRequirement[] = [
 const workspaceFiles = [
   'components/basic-mode/BasicUserWorkspace.vue',
   'components/basic-mode/BasicSystemWorkspace.vue',
-  'components/context-mode/ContextUserWorkspace.vue',
-  'components/context-mode/ContextSystemWorkspace.vue',
   'components/image-mode/ImageText2ImageWorkspace.vue',
   'components/image-mode/ImageImage2ImageWorkspace.vue',
   'components/image-mode/ImageMultiImageWorkspace.vue',
@@ -69,12 +63,9 @@ const promptPanelWorkspaceFiles = workspaceFiles
 const textInputWorkspaceFiles = [
   'components/basic-mode/BasicUserWorkspace.vue',
   'components/basic-mode/BasicSystemWorkspace.vue',
-  'components/context-mode/ContextUserWorkspace.vue',
 ]
 
 const promptPanelPreviewWorkspaceFiles = [
-  'components/context-mode/ContextUserWorkspace.vue',
-  'components/context-mode/ContextSystemWorkspace.vue',
   'components/image-mode/ImageText2ImageWorkspace.vue',
   'components/image-mode/ImageImage2ImageWorkspace.vue',
   'components/image-mode/ImageMultiImageWorkspace.vue',
@@ -83,8 +74,6 @@ const promptPanelPreviewWorkspaceFiles = [
 const promptPanelOriginalVersionWorkspaceFiles = [
   'components/basic-mode/BasicUserWorkspace.vue',
   'components/basic-mode/BasicSystemWorkspace.vue',
-  'components/context-mode/ContextUserWorkspace.vue',
-  'components/context-mode/ContextSystemWorkspace.vue',
 ]
 
 const buildFileRequirements = (
@@ -109,7 +98,6 @@ const workspaceRequirements: FileComponentRequirement[] = [
     '@iterate',
     '@openTemplateManager',
     '@switchVersion',
-    '@save-favorite',
     '@apply-improvement',
     '@apply-patch',
     '@save-local-edit',
@@ -119,11 +107,6 @@ const workspaceRequirements: FileComponentRequirement[] = [
   ]),
   ...buildFileRequirements(promptPanelOriginalVersionWorkspaceFiles, 'PromptPanelUI', [
     '@switchToV0',
-  ]),
-  ...buildFileRequirements(workspaceFiles, 'TextModelQuickSwitch', [
-    ':model-key',
-    ':options',
-    ':refresh-models',
   ]),
 ]
 
@@ -184,11 +167,6 @@ const collectMissingListeners = (requirementsToCheck: FileComponentRequirement[]
   return missing
 }
 
-const countComponentOccurrences = (file: string, component: string) => {
-  const source = readFileSync(join(sourceRoot, file), 'utf8')
-  return extractComponentBlocks(source, component).length
-}
-
 describe('evaluation action wiring', () => {
   it('keeps apply action events connected at workspace boundaries', () => {
     const requirementsToCheck = filesToCheck.flatMap((file) =>
@@ -209,35 +187,4 @@ describe('evaluation action wiring', () => {
     expect(missing).toEqual([])
   })
 
-  it('keeps text model quick switching available in primary and test model selectors', () => {
-    const expectedMinimumOccurrences: Record<string, number> = {
-      'components/basic-mode/BasicUserWorkspace.vue': 2,
-      'components/basic-mode/BasicSystemWorkspace.vue': 2,
-      'components/context-mode/ContextUserWorkspace.vue': 2,
-      'components/context-mode/ContextSystemWorkspace.vue': 2,
-      'components/image-mode/ImageText2ImageWorkspace.vue': 1,
-      'components/image-mode/ImageImage2ImageWorkspace.vue': 1,
-      'components/image-mode/ImageMultiImageWorkspace.vue': 1,
-    }
-
-    const missing = Object.entries(expectedMinimumOccurrences)
-      .filter(([file, minimum]) => countComponentOccurrences(file, 'TextModelQuickSwitch') < minimum)
-      .map(([file, minimum]) => `${file} needs at least ${minimum} <TextModelQuickSwitch> occurrences`)
-
-    expect(missing).toEqual([])
-  })
-
-  it('keeps image model quick switching available in image test model selectors', () => {
-    const expectedMinimumOccurrences: Record<string, number> = {
-      'components/image-mode/ImageText2ImageWorkspace.vue': 1,
-      'components/image-mode/ImageImage2ImageWorkspace.vue': 1,
-      'components/image-mode/ImageMultiImageWorkspace.vue': 1,
-    }
-
-    const missing = Object.entries(expectedMinimumOccurrences)
-      .filter(([file, minimum]) => countComponentOccurrences(file, 'ImageModelQuickSwitch') < minimum)
-      .map(([file, minimum]) => `${file} needs at least ${minimum} <ImageModelQuickSwitch> occurrences`)
-
-    expect(missing).toEqual([])
-  })
 })

@@ -5,8 +5,6 @@ import { resolve } from 'node:path'
 const workspaceFiles = [
   'src/components/basic-mode/BasicUserWorkspace.vue',
   'src/components/basic-mode/BasicSystemWorkspace.vue',
-  'src/components/context-mode/ContextUserWorkspace.vue',
-  'src/components/context-mode/ContextSystemWorkspace.vue',
 ] as const
 
 const readWorkspaceSource = (relativePath: string) =>

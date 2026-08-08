@@ -10,8 +10,6 @@ export type WorkspaceMode =
   | 'image-text2image'
   | 'image-image2image'
   | 'image-multiimage'
-  | 'pro-multi'
-  | 'pro-variable'
 
 /**
  * 评估类型

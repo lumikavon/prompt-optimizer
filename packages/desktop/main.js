@@ -22,7 +22,7 @@ const consoleLogger = new ConsoleLogger();
 // 立即设置全局错误处理器，确保任何异常都能被记录
 consoleLogger.setupGlobalErrorHandlers();
 
-const { app, BrowserWindow, ipcMain, shell, session, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, session, Menu, nativeImage, globalShortcut, screen, Tray } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const {
   buildReleaseUrl,
@@ -49,7 +49,9 @@ const {
   getPageZoomActionFromDirection,
 } = require('./config/page-zoom');
 const { setupRemoteStorageHandlers } = require('./remote-storage');
+const { loadAiConfig, applyAiConfigToEnv, getLastLoadSummary, readAiConfig, saveAiConfig } = require('./config/ai-config');
 const path = require('path');
+const os = require('os');
 
 // 确定正确的配置文件路径
 // 在生产环境中，优先从exe所在目录查找.env.local文件
@@ -75,6 +77,7 @@ const {
   createTemplateManager,
   createHistoryManager,
   createLLMService,
+  createTextAdapterRegistry,
   createPromptService,
   createImageUnderstandingService,
   createImageModelManager,
@@ -226,6 +229,28 @@ let forceQuitTimer = null; // 强制退出定时器
 const MAX_SAVE_TIME = 5000; // 最大保存时间：5秒
 let emergencyExitTimer = null; // 应急退出定时器
 const EMERGENCY_EXIT_TIME = 10000; // 应急退出时间：10秒
+
+// ===== AI 配置（~/.config/ai.yml）=====
+let aiConfig = null; // 从 ai.yml 加载的 OpenAI 兼容配置
+
+// ===== 托盘与快捷键设置 =====
+let tray = null; // 托盘实例
+const TRAY_SETTING_KEYS = {
+  AUTO_LAUNCH: 'tray.autoLaunch', // 开机自启动
+  SILENT_START: 'tray.silentStart', // 静默启动（自启动时隐藏窗口）
+  CLOSE_TO_TRAY: 'tray.closeToTray', // 关闭时最小化到托盘
+  SHOW_HIDE_SHORTCUT: 'tray.showHideShortcut', // 显示/隐藏全局快捷键
+};
+const DEFAULT_SHOW_HIDE_SHORTCUT = 'Alt+P'; // 默认全局快捷键
+
+// 可选全局快捷键预设（托盘菜单可配置）
+const SHORTCUT_PRESETS = [
+  'Alt+P',
+  'CommandOrControl+Alt+P',
+  'CommandOrControl+Shift+P',
+  'Alt+Shift+P',
+  'CommandOrControl+Alt+K',
+];
 
 // 应急退出机制：无论如何都要在10秒内退出
 function setupEmergencyExit() {
@@ -475,6 +500,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    frame: false, // 无边框窗口：移除系统工具栏/标题栏，由主界面自定义窗口控制按钮
     icon: iconPath, // 设置窗口图标
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -487,14 +513,19 @@ function createWindow() {
     applyPageZoomAction(targetWebContents, action);
   };
 
-  Menu.setApplicationMenu(
-    Menu.buildFromTemplate(
-      buildAppMenuTemplate({
-        isMac: process.platform === 'darwin',
-        onPageZoomAction: handlePageZoomAction,
-      })
-    )
-  );
+  // 移除系统菜单栏（无边框窗口）；macOS 保留系统菜单以维持 App 菜单/快捷键
+  if (process.platform === 'darwin') {
+    Menu.setApplicationMenu(
+      Menu.buildFromTemplate(
+        buildAppMenuTemplate({
+          isMac: true,
+          onPageZoomAction: handlePageZoomAction,
+        })
+      )
+    );
+  } else {
+    Menu.setApplicationMenu(null);
+  }
   mainWindow.webContents.setZoomLevel(DEFAULT_PAGE_ZOOM_LEVEL);
   void mainWindow.webContents
     .setVisualZoomLevelLimits(VISUAL_ZOOM_LIMITS.minimum, VISUAL_ZOOM_LIMITS.maximum)
@@ -556,6 +587,127 @@ function createWindow() {
     menu.popup({ window: mainWindow, x: params.x, y: params.y });
   });
 
+  // 自定义窗口控制（无边框窗口）：最小化 / 最大化(还原) / 关闭
+  // removeHandler 前置，避免 createWindow 被多次调用时重复注册
+  ipcMain.removeHandler('window-minimize');
+  ipcMain.handle('window-minimize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize();
+  });
+  ipcMain.removeHandler('window-toggle-maximize');
+  ipcMain.handle('window-toggle-maximize', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (mainWindow.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow.maximize();
+    }
+  });
+  ipcMain.removeHandler('window-close');
+  ipcMain.handle('window-close', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close();
+  });
+  ipcMain.removeHandler('window-is-maximized');
+  ipcMain.handle('window-is-maximized', () => Boolean(
+    mainWindow && !mainWindow.isDestroyed() && mainWindow.isMaximized()
+  ));
+  ipcMain.removeHandler('window-open-devtools');
+  ipcMain.handle('window-open-devtools', () => {
+    openMainWindowDevTools();
+  });
+
+  // 优化模型配置（~/.config/ai.yml 的 .ai.openai）：查看 / 修改
+  ipcMain.removeHandler('ai-config-get');
+  ipcMain.handle('ai-config-get', async () => {
+    try {
+      const { config, configPath, error } = readAiConfig();
+      return createSuccessResponse({ config, configPath, error });
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+  ipcMain.removeHandler('ai-config-set');
+  ipcMain.handle('ai-config-set', async (event, nextConfig) => {
+    try {
+      const result = saveAiConfig(nextConfig || {});
+      // 立即刷新内存配置并重新注入环境变量（下次启动以文件为准）
+      aiConfig = loadAiConfig();
+      applyAiConfigToEnv(aiConfig);
+      console.log('[ai-config] 配置已更新，当前模型:', aiConfig ? aiConfig.model : '(未配置)');
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  // 优化模型配置：通过 models 接口获取可用模型（使用表单中的 base_url/api_key）
+  ipcMain.removeHandler('ai-config-fetchModels');
+  ipcMain.handle('ai-config-fetchModels', async (event, config) => {
+    try {
+      const baseURL = (config && (config.base_url || config.baseURL)) || '';
+      const apiKey = (config && (config.api_key || config.apiKey)) || '';
+      const model = (config && config.model) || aiConfig?.model || '';
+      // 以传统 ModelConfig 结构传入，buildEffectiveModelConfig 会合并 base_url/api_key 并解析 provider/model 元数据
+      const result = await llmService.fetchModelList('openai-compatible', {
+        provider: 'custom',
+        baseURL,
+        apiKey,
+        defaultModel: model || 'custom-model',
+        name: 'custom',
+        models: [],
+        enabled: true,
+      });
+      return createSuccessResponse(result);
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  // 优化模型配置：测试 API 连接（使用表单中的 base_url/api_key/model 直接调用）
+  ipcMain.removeHandler('ai-config-test');
+  ipcMain.handle('ai-config-test', async (event, config) => {
+    try {
+      const baseURL = (config && (config.base_url || config.baseURL))?.trim() || '';
+      const apiKey = (config && (config.api_key || config.apiKey))?.trim() || '';
+      const model = (config && config.model)?.trim() || aiConfig?.model || 'gpt-4o';
+      if (!baseURL) {
+        return createErrorResponse(new Error('Base URL is required'));
+      }
+      // 直接用表单值构造连接配置，绕开 modelManager（custom 模型仅在启动时按环境变量重建）
+      const registry = createTextAdapterRegistry();
+      const adapter = registry.getAdapter('openai-compatible');
+      const providerMeta = adapter.getProvider();
+      const modelMeta = adapter.buildDefaultModel(model);
+      const llmResponse = await adapter.sendMessage(
+        [{ role: 'user', content: 'Please reply ok' }],
+        {
+          id: 'ai-config-test',
+          name: model,
+          enabled: true,
+          providerMeta,
+          modelMeta,
+          connectionConfig: { baseURL, apiKey },
+          paramOverrides: {},
+          customParamOverrides: {},
+        }
+      );
+      return createSuccessResponse({ ok: true, content: llmResponse.content });
+    } catch (error) {
+      return createErrorResponse(error);
+    }
+  });
+
+  const notifyMaximizedChanged = (maximized) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('window-maximized-changed', maximized);
+    }
+  };
+  mainWindow.removeListener('maximize', onWindowMaximized);
+  mainWindow.removeListener('unmaximize', onWindowUnmaximized);
+  mainWindow.on('maximize', onWindowMaximized);
+  mainWindow.on('unmaximize', onWindowUnmaximized);
+  function onWindowMaximized() { notifyMaximizedChanged(true); }
+  function onWindowUnmaximized() { notifyMaximizedChanged(false); }
+
   // In development, we can point to the vite dev server
   if (process.env.NODE_ENV === 'development') {
     console.log('[Main Process] Running in development mode, loading from Vite dev server');
@@ -578,6 +730,22 @@ function createWindow() {
     // 如果是更新安装退出，直接关闭窗口，不保存数据
     if (isUpdaterQuitting) {
       console.log('[DESKTOP] Updater quit detected, skipping data save');
+      return;
+    }
+
+    // 关闭时最小化到托盘（非真正退出）：保存数据后隐藏窗口
+    if (!isQuitting && (await getCloseToTraySetting())) {
+      event.preventDefault();
+      try {
+        if (storageProvider && typeof storageProvider.flush === 'function') {
+          await storageProvider.flush();
+        }
+      } catch (error) {
+        console.warn('[DESKTOP] Failed to flush data before hiding to tray:', error);
+      }
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.hide();
+      }
       return;
     }
 
@@ -628,6 +796,379 @@ function createWindow() {
     // Dereference the window object
     mainWindow = null;
   });
+
+  // 静默启动（--hidden / --silent 启动参数，如开机自启时）：创建后立即隐藏
+  if (isSilentStartRequested()) {
+    console.log('[DESKTOP] Silent start requested, hiding main window');
+    mainWindow.hide();
+  }
+}
+
+// ==================== 托盘与全局快捷键 ====================
+
+/**
+ * 是否以静默方式启动（启动参数 --hidden / --silent）
+ * 用于开机自启动场景：启动后不显示主窗口，驻留托盘
+ */
+function isSilentStartRequested() {
+  return (
+    process.argv.includes('--hidden') ||
+    process.argv.includes('--silent') ||
+    process.argv.includes('--hidden-start')
+  );
+}
+
+/**
+ * 获取显示/隐藏快捷键（preference 可配置，默认 CommandOrControl+Alt+P）
+ */
+async function getShowHideShortcut() {
+  try {
+    const saved = await preferenceService.get(TRAY_SETTING_KEYS.SHOW_HIDE_SHORTCUT, null);
+    if (typeof saved === 'string' && saved.trim()) {
+      return saved.trim();
+    }
+  } catch (error) {
+    console.warn('[Shortcut] Failed to read shortcut preference:', error.message);
+  }
+  return DEFAULT_SHOW_HIDE_SHORTCUT;
+}
+
+/**
+ * 注册全局快捷键：快速显示（到当前活动屏幕）/ 隐藏主窗口
+ */
+async function registerShowHideShortcut() {
+  try {
+    const shortcut = await getShowHideShortcut();
+    globalShortcut.unregisterAll(); // 先清理旧注册，避免重复
+    const registered = globalShortcut.register(shortcut, () => {
+      toggleMainWindow();
+    });
+    if (registered) {
+      console.log(`[Shortcut] 全局快捷键已注册: ${shortcut} （显示/隐藏主窗口）`);
+    } else {
+      console.warn(`[Shortcut] 全局快捷键注册失败（可能被其他程序占用）: ${shortcut}`);
+    }
+  } catch (error) {
+    console.error('[Shortcut] Failed to register global shortcut:', error);
+  }
+}
+
+/**
+ * 将主窗口显示到当前活动屏幕（鼠标所在屏幕）并居中
+ */
+function showMainWindowOnActiveScreen() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+  try {
+    const cursorPoint = screen.getCursorScreenPoint();
+    const display = screen.getDisplayNearestPoint(cursorPoint);
+    const { x, y, width, height } = display.workArea;
+    const winBounds = mainWindow.getBounds();
+    const targetX = Math.round(x + (width - winBounds.width) / 2);
+    const targetY = Math.round(y + (height - winBounds.height) / 2);
+    mainWindow.setPosition(targetX, targetY);
+  } catch (error) {
+    console.warn('[Shortcut] Failed to move window to active screen:', error.message);
+  }
+  mainWindow.show();
+  mainWindow.focus();
+}
+
+/**
+ * 切换主窗口显示/隐藏（全局快捷键 & 托盘点击）
+ */
+function toggleMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+    return;
+  }
+  if (mainWindow.isVisible() && !mainWindow.isMinimized()) {
+    mainWindow.hide();
+  } else {
+    showMainWindowOnActiveScreen();
+  }
+}
+
+/**
+ * 打开主窗口的 DevTools（分离模式，不影响主窗口布局）
+ */
+function openMainWindowDevTools() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.openDevTools({ mode: 'detach' });
+}
+
+// ---- 托盘设置（持久化到 preferenceService）----
+
+async function getCloseToTraySetting() {
+  try {
+    const saved = await preferenceService.get(TRAY_SETTING_KEYS.CLOSE_TO_TRAY, null);
+    return saved === null ? true : Boolean(saved); // 默认开启
+  } catch (error) {
+    console.warn('[Tray] Failed to read closeToTray setting:', error.message);
+    return true;
+  }
+}
+
+async function setCloseToTraySetting(enabled) {
+  await preferenceService.set(TRAY_SETTING_KEYS.CLOSE_TO_TRAY, Boolean(enabled));
+}
+
+async function getSilentStartSetting() {
+  try {
+    const saved = await preferenceService.get(TRAY_SETTING_KEYS.SILENT_START, null);
+    return saved === null ? true : Boolean(saved); // 默认开启（自启动时隐藏）
+  } catch (error) {
+    console.warn('[Tray] Failed to read silentStart setting:', error.message);
+    return true;
+  }
+}
+
+async function setSilentStartSetting(enabled) {
+  await preferenceService.set(TRAY_SETTING_KEYS.SILENT_START, Boolean(enabled));
+  // 立即同步到登录项
+  await syncLoginItemSettings();
+}
+
+async function getAutoLaunchSetting() {
+  try {
+    const saved = await preferenceService.get(TRAY_SETTING_KEYS.AUTO_LAUNCH, null);
+    if (saved !== null) return Boolean(saved);
+  } catch (error) {
+    console.warn('[Tray] Failed to read autoLaunch setting:', error.message);
+  }
+  return true; // 默认开启开机自启动
+}
+
+/**
+ * 同步开机自启动设置到系统
+ * - Windows/macOS：app.setLoginItemSettings
+ * - Linux：通过桌面文件（~/.config/autostart）实现
+ */
+async function syncLoginItemSettings() {
+  const enabled = await getAutoLaunchSetting();
+  const silent = await getSilentStartSetting();
+  const appName = 'PromptOptimizer';
+
+  if (process.platform === 'win32' || process.platform === 'darwin') {
+    try {
+      app.setLoginItemSettings({
+        openAtLogin: enabled,
+        openAsHidden: silent, // macOS 支持
+        args: silent ? ['--hidden'] : [], // Windows：自启动时附加静默参数
+      });
+      console.log(`[Tray] 开机自启动已${enabled ? '开启' : '关闭'}（静默启动: ${silent ? '是' : '否'}）`);
+    } catch (error) {
+      console.warn('[Tray] Failed to update login item settings:', error.message);
+    }
+    return;
+  }
+
+  // Linux：写入/删除 autostart desktop 文件
+  try {
+    const fs = require('fs');
+    const autostartDir = path.join(os.homedir(), '.config', 'autostart');
+    const desktopFile = path.join(autostartDir, `${appName}.desktop`);
+    if (!enabled) {
+      if (fs.existsSync(desktopFile)) {
+        fs.rmSync(desktopFile, { force: true });
+        console.log('[Tray] 已移除 Linux 开机自启动项');
+      }
+      return;
+    }
+    fs.mkdirSync(autostartDir, { recursive: true });
+    const silentArg = silent ? ' --hidden' : '';
+    fs.writeFileSync(
+      desktopFile,
+      `[Desktop Entry]\nType=Application\nName=${appName}\nExec="${process.execPath}"${silentArg}\nX-GNOME-Autostart-enabled=true\n`
+    );
+    console.log('[Tray] 已创建 Linux 开机自启动项');
+  } catch (error) {
+    console.warn('[Tray] Failed to update Linux autostart entry:', error.message);
+  }
+}
+
+async function setAutoLaunchSetting(enabled) {
+  await preferenceService.set(TRAY_SETTING_KEYS.AUTO_LAUNCH, Boolean(enabled));
+  await syncLoginItemSettings();
+}
+
+/**
+ * 修改显示/隐藏全局快捷键（持久化 + 立即重新注册）
+ */
+async function setShowHideShortcut(shortcut) {
+  if (typeof shortcut !== 'string' || !shortcut.trim()) return;
+  const normalized = shortcut.trim();
+  await preferenceService.set(TRAY_SETTING_KEYS.SHOW_HIDE_SHORTCUT, normalized);
+  console.log(`[Shortcut] 快捷键已更改为: ${normalized}`);
+  await registerShowHideShortcut();
+}
+
+/**
+ * 首次运行时将默认托盘设置写入 preference 并同步到系统
+ * 默认配置：开机自启动 + 静默启动 + 关闭时最小化到托盘
+ */
+async function ensureDefaultTraySettings() {
+  try {
+    const autoLaunch = await preferenceService.get(TRAY_SETTING_KEYS.AUTO_LAUNCH, null);
+    if (autoLaunch === null) {
+      await preferenceService.set(TRAY_SETTING_KEYS.AUTO_LAUNCH, true);
+      await syncLoginItemSettings();
+      console.log('[Tray] 首次运行：已按默认配置开启开机自启动（静默启动）');
+    }
+  } catch (error) {
+    console.warn('[Tray] Failed to apply default tray settings:', error.message);
+  }
+}
+
+// ---- 托盘菜单文案（固定中文）----
+function getTrayLabels(shortcutHint = 'Alt+P') {
+  return {
+    show: '显示主窗口',
+    hide: '隐藏主窗口',
+    autoLaunch: '开机自启动',
+    silentStart: '静默启动（启动时隐藏窗口）',
+    closeToTray: '关闭时最小化到托盘',
+    shortcut: '全局快捷键',
+    devTools: '打开开发者工具 (DevTools)',
+    shortcutHint: `当前快捷键：${shortcutHint}`,
+    quit: '退出',
+  };
+}
+
+/**
+ * 创建系统托盘图标（常驻托盘，提供设置菜单）
+ */
+async function createTray() {
+  // 选择托盘图标
+  let iconPath;
+  if (process.platform === 'win32') {
+    iconPath = path.join(__dirname, 'icons', 'app-icon.ico');
+  } else if (process.platform === 'darwin') {
+    iconPath = path.join(__dirname, 'icons', 'app-icon.png');
+  } else {
+    iconPath = path.join(__dirname, 'icons', 'app-icon.png');
+  }
+
+  if (!require('fs').existsSync(iconPath)) {
+    console.warn('[Tray] Tray icon not found:', iconPath);
+    return;
+  }
+
+  const buildTrayMenu = async () => {
+    const shortcut = await getShowHideShortcut();
+    const shortcutHintLabel = shortcut
+      .replace(/CommandOrControl/g, 'Ctrl')
+      .replace(/\+/g, '+');
+    const labels = getTrayLabels(shortcutHintLabel);
+    const windowVisible = Boolean(
+      mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible() && !mainWindow.isMinimized()
+    );
+    return Menu.buildFromTemplate([
+      {
+        label: windowVisible ? labels.hide : labels.show,
+        click: () => {
+          if (windowVisible) {
+            mainWindow.hide();
+          } else {
+            showMainWindowOnActiveScreen();
+          }
+        },
+      },
+      { type: 'separator' },
+      {
+        label: labels.autoLaunch,
+        type: 'checkbox',
+        checked: await getAutoLaunchSetting(),
+        click: (item) => {
+          void setAutoLaunchSetting(item.checked);
+        },
+      },
+      {
+        label: labels.silentStart,
+        type: 'checkbox',
+        checked: await getSilentStartSetting(),
+        click: (item) => {
+          void setSilentStartSetting(item.checked);
+        },
+      },
+      {
+        label: labels.closeToTray,
+        type: 'checkbox',
+        checked: await getCloseToTraySetting(),
+        click: (item) => {
+          void setCloseToTraySetting(item.checked);
+        },
+      },
+      { type: 'separator' },
+      {
+        label: labels.shortcut,
+        submenu: SHORTCUT_PRESETS.map((preset) => ({
+          label: preset.replace(/CommandOrControl/g, 'Ctrl'),
+          type: 'radio',
+          checked: shortcut === preset,
+          click: () => {
+            void setShowHideShortcut(preset);
+          },
+        })),
+      },
+      { type: 'separator' },
+      {
+        label: labels.devTools,
+        click: () => {
+          openMainWindowDevTools();
+        },
+      },
+      { type: 'separator' },
+      {
+        label: labels.shortcutHint,
+        enabled: false,
+      },
+      { type: 'separator' },
+      {
+        label: labels.quit,
+        click: () => {
+          // 标记为真正退出，允许 close 事件放行；退出前先保存数据
+          isQuitting = true;
+          if (storageProvider && typeof storageProvider.flush === 'function') {
+            storageProvider.flush().catch((error) => {
+              console.warn('[DESKTOP] Failed to flush data before quit:', error);
+            });
+          }
+          app.quit();
+        },
+      },
+    ]);
+  };
+
+  try {
+    tray = new Tray(nativeImage.createFromPath(iconPath));
+    tray.setToolTip('Prompt Optimizer');
+    // 左键单击托盘图标：切换显示/隐藏
+    tray.on('click', () => {
+      toggleMainWindow();
+    });
+    // 右键菜单（重新构建以读取最新设置）
+    const refreshMenu = async () => {
+      try {
+        tray.setContextMenu(await buildTrayMenu());
+      } catch (error) {
+        console.warn('[Tray] Failed to rebuild tray menu:', error.message);
+      }
+    };
+    await refreshMenu();
+    // 设置变化时刷新菜单
+    tray.on('right-click', () => {
+      void refreshMenu();
+    });
+    console.log('[Tray] System tray icon created');
+  } catch (error) {
+    console.error('[Tray] Failed to create tray:', error);
+  }
 }
 
 async function initializeServices() {
@@ -703,7 +1244,26 @@ async function initializeServices() {
     await writeStartupRepairReport(storageProvider, startupRepairReport);
     
     await initializePreferenceService(storageProvider);
-    
+
+    // 若 ai.yml 提供了优化模型配置：
+    // 清除存储中旧的 custom 模型配置，强制以配置文件为准（模型管理器会在
+    // 初始化时基于已注入的 VITE_CUSTOM_API_* 环境变量重新生成 custom 模型）
+    if (aiConfig) {
+      try {
+        const storedModelsRaw = await storageProvider.getItem('models');
+        if (storedModelsRaw) {
+          const storedModels = JSON.parse(storedModelsRaw);
+          if (storedModels && typeof storedModels === 'object' && storedModels.custom) {
+            delete storedModels.custom;
+            await storageProvider.setItem('models', JSON.stringify(storedModels));
+            console.log('[ai-config] 已清除存储中的旧 custom 模型配置，将以 ~/.config/ai.yml 为准');
+          }
+        }
+      } catch (error) {
+        console.warn('[ai-config] 清除旧 custom 模型配置失败（忽略）:', error.message);
+      }
+    }
+
     console.log('[DESKTOP] Creating model manager...');
     modelManager = createModelManager(storageProvider);
     
@@ -2315,12 +2875,23 @@ function setupIPC() {
 
 // This method is called when Electron has finished initialization.
 app.whenReady().then(async () => {
+  // 加载 ~/.config/ai.yml 中的优化模型配置并注入环境变量
+  // （必须在 initializeServices 创建模型管理器之前执行）
+  aiConfig = loadAiConfig();
+  applyAiConfigToEnv(aiConfig);
+  console.log(getLastLoadSummary());
+
   const servicesInitialized = await initializeServices();
   if (servicesInitialized) {
     // 必须先设置IPC监听器，再创建窗口
     // 以防止窗口中的代码在监听器准备好之前就发送IPC消息
     setupIPC();
     createWindow();
+    // 首次运行：应用默认托盘设置（开机自启动等）
+    await ensureDefaultTraySettings();
+    // 托盘图标与全局快捷键
+    await createTray();
+    await registerShowHideShortcut();
   } else {
     console.error('[Main Process] Failed to start application due to service initialization failure.');
     // Optionally, show a dialog to the user
@@ -2399,6 +2970,11 @@ app.on('before-quit', async (event) => {
 
 // Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', function () {
+  // 托盘常驻：窗口全部关闭时保留进程（用户可通过托盘菜单退出）
+  if (tray) {
+    console.log('[DESKTOP] All windows closed, keeping app alive in system tray');
+    return;
+  }
   if (process.platform !== 'darwin') {
     app.quit();
   }

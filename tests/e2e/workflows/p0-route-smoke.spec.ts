@@ -1,10 +1,9 @@
 import { test, expect } from '../fixtures'
 
+// 说明：Pro 模式（pro-multi / pro-variable）已随 UI 重构移除，此处只保留现存工作区路由。
 const ROUTES: Array<{ name: string; hashPath: string }> = [
   { name: 'basic-system', hashPath: '/#/basic/system' },
   { name: 'basic-user', hashPath: '/#/basic/user' },
-  { name: 'pro-multi', hashPath: '/#/pro/multi' },
-  { name: 'pro-variable', hashPath: '/#/pro/variable' },
   { name: 'image-text2image', hashPath: '/#/image/text2image' },
   { name: 'image-image2image', hashPath: '/#/image/image2image' },
   { name: 'image-multiimage', hashPath: '/#/image/multiimage' }

@@ -1,3 +1,6 @@
+// e2e 分组配置
+// 说明：Pro 模式（pro-multi/pro-variable）、图像/文本测试区（test deck）已随 UI 重构移除，
+// 相应 spec 已删除；此处只保留现存工作区（2 Basic + 3 Image）的用例。
 const groups = {
   gate: [
     'tests/e2e/workflows/p0-route-smoke.spec.ts',
@@ -12,17 +15,9 @@ const groups = {
     'tests/e2e/analysis/basic-user.spec.ts',
     'tests/e2e/analysis/image-text2image.spec.ts',
     'tests/e2e/analysis/image-image2image.spec.ts',
-    'tests/e2e/analysis/pro-multi.spec.ts',
-    'tests/e2e/analysis/pro-variable.spec.ts',
     'tests/e2e/optimize/basic-system.spec.ts',
     'tests/e2e/test/image-image2image-generate.spec.ts',
-    'tests/e2e/session-persistence/image-multiimage-persistence.spec.ts',
-    'tests/e2e/optimize/pro-multi.spec.ts',
-    'tests/e2e/optimize/pro-variable.spec.ts',
-    'tests/e2e/test/basic-system-compare-test.spec.ts',
-    'tests/e2e/test/basic-user-test.spec.ts',
-    'tests/e2e/test/pro-multi-test.spec.ts',
-    'tests/e2e/test/pro-variable-test.spec.ts'
+    'tests/e2e/session-persistence/image-multiimage-persistence.spec.ts'
   ]
 }
 

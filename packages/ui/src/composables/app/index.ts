@@ -6,7 +6,6 @@
  */
 
 export { useAppHistoryRestore } from './useAppHistoryRestore'
-export { useAppFavorite } from './useAppFavorite'
 
 // 导出类型
 export type {
@@ -14,8 +13,3 @@ export type {
     AppHistoryRestoreReturn,
     HistoryContext,
 } from './useAppHistoryRestore'
-
-export type {
-    AppFavoriteOptions,
-    AppFavoriteReturn,
-} from './useAppFavorite'

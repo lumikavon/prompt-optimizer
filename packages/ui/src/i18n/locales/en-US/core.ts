@@ -1,4 +1,26 @@
 const messages = {
+  "aiConfig": {
+    "title": "Optimizer Model Config",
+    "baseUrl": "Base URL",
+    "apiKey": "API Key",
+    "model": "Model",
+    "configPath": "Config File",
+    "unknownPath": "Unknown",
+    "saveSuccess": "Config saved",
+    "saveFailed": "Save failed",
+    "restartNote": "Note: new config takes effect after app restart",
+    "loadFailed": "Failed to load config",
+    "testButton": "Test Connection",
+    "testing": "Testing...",
+    "testSuccess": "Connection successful",
+    "testFailed": "Connection failed"
+  },
+  "windowControls": {
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore",
+    "close": "Close"
+  },
   "common": {
     "loading": "Loading...",
     "save": "Save",
@@ -16,6 +38,7 @@ const messages = {
     "language": "Language",
     "templates": "Templates",
     "history": "History",
+    "modelConfig": "Model Config",
     "close": "Close",
     "test": "Test",
     "enable": "Enable",

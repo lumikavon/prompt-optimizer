@@ -4,7 +4,6 @@ import {
   fillOriginalPrompt,
   clickAnalyzeButton,
   getEvaluationScore,
-  closeEvaluationPanelIfOpen,
   verifyAnalyzeButtonDisabledWhenEmpty,
   getWorkspace,
 } from '../helpers/analysis'
@@ -16,8 +15,6 @@ import {
 import {
   clickOptimizeButton,
   expectOptimizedResultNotEmpty,
-  expectOutputByTestIdNotEmpty,
-  readOutputByTestIdText,
 } from '../helpers/optimize'
 
 /**
@@ -44,8 +41,6 @@ import {
  */
 
 const MODE = 'basic-user' as const
-const STALE_COMPARE_MESSAGE =
-  /测试或工作区已变更，建议重新对比。|The test setup or workspace has changed\. Re-run the comparison if needed\./i
 
 test.describe('Basic User - 提示词分析', () => {
   test('分析提示词并显示评估结果', async ({ page }) => {
@@ -79,73 +74,6 @@ test.describe('Basic User - 提示词分析', () => {
 
     // 分析按钮应该在没有输入时禁用
     await verifyAnalyzeButtonDisabledWhenEmpty(page, MODE)
-  })
-
-  test('分析后右侧 workspace 测试应切换到新的 V0 而不是继续沿用旧链', async ({ page }) => {
-    test.setTimeout(240000)
-
-    const oldToken = 'OLDQ7'
-    const newToken = 'NEWV0'
-
-    await navigateToMode(page, 'basic', 'user')
-
-    await fillOriginalPrompt(page, MODE, `请只输出 ${oldToken}`)
-    await clickOptimizeButton(page, MODE)
-    await expectOptimizedResultNotEmpty(page, MODE)
-
-    await fillOriginalPrompt(page, MODE, `请只输出 ${newToken}`)
-    await clickAnalyzeButton(page, MODE)
-    await getEvaluationScore(page, MODE, 'prompt-only')
-    await closeEvaluationPanelIfOpen(page)
-
-    const workspace = getWorkspace(page, MODE)
-    await workspace.locator('[data-testid="basic-user-test-run-b"]').click()
-    await expectOutputByTestIdNotEmpty(page, 'basic-user-test-optimized-output')
-
-    const output = await readOutputByTestIdText(page, 'basic-user-test-optimized-output')
-    expect(output).toContain(newToken)
-    expect(output).not.toContain(oldToken)
-  })
-
-  test('对比评估在工作区内容变更后应保留并标记为过期', async ({ page }) => {
-    test.setTimeout(300000)
-
-    await navigateToMode(page, 'basic', 'user')
-
-    await fillOriginalPrompt(page, MODE, '你是一个中文文案助手。请将用户输入改写成更正式、更清晰的一句话。')
-    await clickAnalyzeButton(page, MODE)
-    await getEvaluationScore(page, MODE, 'prompt-only')
-    await closeEvaluationPanelIfOpen(page)
-
-    const workspace = getWorkspace(page, MODE)
-    await workspace.locator('[data-testid="basic-user-test-run-all"]').click()
-    await expectOutputByTestIdNotEmpty(page, 'basic-user-test-original-output')
-    await expectOutputByTestIdNotEmpty(page, 'basic-user-test-optimized-output')
-
-    await workspace.locator('.test-area-top').first().getByTestId('focus-analyze-main').click()
-    await getEvaluationScore(page, MODE, 'compare')
-
-    const workspaceOutput = workspace.locator('[data-testid="basic-user-output"]').first()
-    const workspaceEditor = workspaceOutput.locator('textarea')
-    if ((await workspaceEditor.count()) > 0) {
-      await workspaceEditor.first().fill(
-        '你是一个中文文案助手。请将用户输入改写成更正式、更清晰的一句话。\n补充要求：务必保持原意，不要扩写。'
-      )
-    } else {
-      const cmContent = workspaceOutput.locator('.cm-content').first()
-      await cmContent.click()
-      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A')
-      await page.keyboard.type(
-        '你是一个中文文案助手。请将用户输入改写成更正式、更清晰的一句话。\n补充要求：务必保持原意，不要扩写。'
-      )
-    }
-
-    const compareBadge = workspace.locator('[data-testid="score-badge-compare"]')
-    await expect(compareBadge).toBeVisible()
-    await expect(compareBadge).toHaveClass(/evaluation-score-badge-btn--stale/)
-
-    await compareBadge.click()
-    await expect(page.locator('.evaluation-hover-card:visible').getByText(STALE_COMPARE_MESSAGE)).toBeVisible()
   })
 
   test('点击 V0 后重新分析应回到 prompt-only，而不是沿用旧版本的 iterate 状态', async ({ page }) => {

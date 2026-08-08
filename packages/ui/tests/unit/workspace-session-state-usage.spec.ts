@@ -9,8 +9,6 @@ describe('workspace session state usage guards', () => {
     const files = [
       '../../src/components/basic-mode/BasicSystemWorkspace.vue',
       '../../src/components/basic-mode/BasicUserWorkspace.vue',
-      '../../src/components/context-mode/ContextSystemWorkspace.vue',
-      '../../src/components/context-mode/ContextUserWorkspace.vue',
     ]
 
     for (const file of files) {

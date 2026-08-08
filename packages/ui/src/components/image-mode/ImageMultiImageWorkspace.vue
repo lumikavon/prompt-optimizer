@@ -11,7 +11,7 @@
     <div
       ref="splitRootRef"
       class="image-multiimage-split"
-      :style="{ gridTemplateColumns: `${mainSplitLeftPct}% 12px 1fr` }"
+      :style="{ gridTemplateColumns: splitGridTemplateColumns }"
     >
       <div class="split-pane" style="min-width: 0; height: 100%; overflow: hidden;">
         <NFlex
@@ -20,7 +20,7 @@
           :style="{ overflow: 'auto', height: '100%', minHeight: 0 }"
         >
           <TestSourceLinkedCard
-            :style="{ flexShrink: 0 }"
+            :style="{ flex: 1, minHeight: 0 }"
             :feedback-key="sourceAreaFeedback.original.key"
             :feedback-tone="sourceAreaFeedback.original.tone"
             :source-tone="sourceAreaFeedback.original.sourceTone"
@@ -107,7 +107,7 @@
                 :model-value="originalPrompt"
                 :readonly="optimizing || isIterating"
                 :placeholder="t('imageWorkspace.input.multiImagePromptPlaceholder')"
-                :autosize="{ minRows: 4, maxRows: 12 }"
+                :autosize="{ minRows: 6, maxRows: 12 }"
                 clearable
                 show-count
                 v-bind="variableInputData"
@@ -121,7 +121,7 @@
                 type="textarea"
                 data-testid="image-multiimage-input"
                 :placeholder="t('imageWorkspace.input.multiImagePromptPlaceholder')"
-                :autosize="{ minRows: 4, maxRows: 12 }"
+                :autosize="{ minRows: 6, maxRows: 12 }"
                 clearable
                 show-count
                 :disabled="optimizing || isIterating"
@@ -217,39 +217,7 @@
               </NSpace>
 
               <NGrid :cols="24" :x-gap="8" responsive="screen">
-                <NGridItem :span="7" :xs="24" :sm="7">
-                  <NSpace vertical :size="8">
-                    <NFlex align="center" :size="6" :wrap="false">
-                      <NText :depth="2" style="font-size: 14px; font-weight: 500; flex-shrink: 0;">
-                        {{ t('imageWorkspace.input.textModel') }}
-                      </NText>
-                      <TextModelQuickSwitch
-                        :model-key="selectedTextModelKey"
-                        :options="textModelOptions"
-                        :refresh-models="modelSelection.refreshTextModels"
-                        :disabled="optimizing || isIterating"
-                      />
-                    </NFlex>
-                    <SelectWithConfig
-                      data-testid="image-multiimage-text-model-select"
-                      v-model="selectedTextModelKey"
-                      :options="textModelOptions"
-                      :getPrimary="OptionAccessors.getPrimary"
-                      :getSecondary="OptionAccessors.getSecondary"
-                      :getValue="OptionAccessors.getValue"
-                      :placeholder="t('imageWorkspace.input.modelPlaceholder')"
-                      size="medium"
-                      :disabled="optimizing || isIterating"
-                      filterable
-                      :show-config-action="!!appOpenModelManager"
-                      :show-empty-config-c-t-a="true"
-                      @focus="handleTextModelSelectFocus"
-                      @config="() => appOpenModelManager && appOpenModelManager('text')"
-                    />
-                  </NSpace>
-                </NGridItem>
-
-                <NGridItem :span="11" :xs="24" :sm="11">
+                <NGridItem :span="18" :xs="24" :sm="18">
                   <NSpace vertical :size="8">
                     <NText :depth="2" style="font-size: 14px; font-weight: 500;">
                       {{ t('imageWorkspace.input.optimizeTemplate') }}
@@ -301,8 +269,24 @@
             </NSpace>
           </TestSourceLinkedCard>
 
+        </NFlex>
+      </div>
+
+      <div
+        class="split-divider"
+        role="separator"
+        tabindex="0"
+        :aria-valuemin="25"
+        :aria-valuemax="50"
+        :aria-valuenow="mainSplitLeftPct"
+        @pointerdown="onSplitPointerDown"
+        @keydown="onSplitKeydown"
+      />
+
+      <!-- 右侧：优化工作区 -->
+      <div class="split-pane" style="min-width: 0; height: 100%; overflow: hidden;">
           <TestSourceLinkedCard
-            :style="{ flex: 1, minHeight: '200px', overflow: 'hidden' }"
+            :style="{ height: '100%', minHeight: 0, overflow: 'hidden' }"
             content-style="height: 100%; max-height: 100%; overflow: hidden;"
             :feedback-key="sourceAreaFeedback.workspace.key"
             :feedback-tone="sourceAreaFeedback.workspace.tone"
@@ -331,231 +315,12 @@
               @iterate="handleIteratePrompt"
               @openTemplateManager="onOpenTemplateManager"
               @switchVersion="handleSwitchVersion"
-              @save-favorite="handleSaveFavorite"
               @save-local-edit="handleSaveLocalEdit"
               @apply-improvement="handleApplyImprovement"
               @apply-patch="handleApplyPatch"
               @open-preview="handleOpenPromptPreview"
             />
           </TestSourceLinkedCard>
-        </NFlex>
-      </div>
-
-      <div
-        class="split-divider"
-        role="separator"
-        tabindex="0"
-        :aria-valuemin="25"
-        :aria-valuemax="50"
-        :aria-valuenow="mainSplitLeftPct"
-        @pointerdown="onSplitPointerDown"
-        @keydown="onSplitKeydown"
-      />
-
-      <div ref="testPaneRef" class="split-pane" style="min-width: 0; height: 100%; overflow: hidden;">
-        <NFlex vertical :style="{ height: '100%', gap: '12px' }">
-          <TemporaryVariablesPanel
-            :manager="temporaryVariablePanelManager"
-            :disabled="optimizing || isAnyVariantRunning"
-            :show-generate-values="true"
-            :is-generating="isGenerating"
-            @generate-values="handleGenerateValues"
-          />
-
-          <NCard size="small" :style="{ flexShrink: 0 }">
-            <div class="test-area-top">
-              <NFlex align="center" :size="8" :wrap="false">
-                <NText :depth="2" class="test-area-label">{{ t('test.layout.columns') }}：</NText>
-                <NRadioGroup v-model:value="testColumnCountModel" size="small" :disabled="isAnyVariantRunning">
-                  <NRadioButton :value="2" data-testid="image-multiimage-columns-2">2</NRadioButton>
-                  <NRadioButton :value="3" data-testid="image-multiimage-columns-3">3</NRadioButton>
-                  <NRadioButton :value="4" :disabled="!canUseFourColumns" data-testid="image-multiimage-columns-4">4</NRadioButton>
-                </NRadioGroup>
-              </NFlex>
-
-              <NButton
-                type="primary"
-                size="small"
-                :loading="isAnyVariantRunning"
-                :disabled="isAnyVariantRunning"
-                data-testid="image-multiimage-test-run-all"
-                @click="runAllVariants"
-              >
-                {{ t('test.layout.runAll') }}
-              </NButton>
-            </div>
-          </NCard>
-
-          <NCard size="small" :style="{ flexShrink: 0 }">
-            <div class="variant-deck" :style="{ gridTemplateColumns: testGridTemplateColumns }">
-              <div v-for="id in activeVariantIds" :key="id" class="variant-cell">
-                <div
-                  class="variant-cell__controls"
-                  :class="{ 'variant-cell__controls--stacked': useStackedVariantControls }"
-                >
-                  <div class="variant-cell__meta">
-                    <TestVariantSourceTag
-                      class="variant-cell__label"
-                      :variant-label="getVariantLabel(id)"
-                      :selection="variantVersionModels[id].value"
-                      :resolved-version="getVariantResolvedVersion(id)"
-                      :labels="getTestPanelVersionLabels()"
-                      :feedback-key="variantSourceFeedback[id].key"
-                      :feedback-tone="variantSourceFeedback[id].tone"
-                      @activate="activateVariantSource(id)"
-                    />
-                    <ImageModelQuickSwitch
-                      :model-key="variantModelKeyModels[id].value"
-                      :options="imageModelOptions"
-                      :refresh-models="refreshImageModelsHandler"
-                      :disabled="variantRunning[id]"
-                    />
-                  </div>
-
-                  <div class="variant-cell__actions">
-                    <TestPanelVersionSelect
-                      :value="variantVersionModels[id].value"
-                      :options="versionOptions"
-                      :disabled="variantRunning[id]"
-                      :test-id="getVariantVersionTestId(id)"
-                      @update:value="(value) => handleVariantVersionChange(id, value)"
-                    />
-
-                    <div class="variant-cell__model">
-                      <SelectWithConfig
-                        :data-testid="getVariantModelTestId(id)"
-                        :model-value="variantModelKeyModels[id].value"
-                        @update:model-value="(value) => { variantModelKeyModels[id].value = String(value ?? '') }"
-                        :options="imageModelOptions"
-                        :getPrimary="OptionAccessors.getPrimary"
-                        :getSecondary="OptionAccessors.getSecondary"
-                        :getValue="OptionAccessors.getValue"
-                        :placeholder="t('imageWorkspace.generation.imageModelPlaceholder')"
-                        size="small"
-                        :disabled="variantRunning[id]"
-                        filterable
-                        :show-config-action="!!appOpenModelManager"
-                        :show-empty-config-c-t-a="true"
-                        @config="() => appOpenModelManager && appOpenModelManager('image')"
-                        style="min-width: 0; width: 100%;"
-                      />
-                      <NText
-                        v-if="shouldShowVariantModelWarning(id)"
-                        class="variant-cell__support"
-                        type="error"
-                        :depth="2"
-                      >
-                        {{ getVariantModelSupportState(id).message }}
-                      </NText>
-                    </div>
-
-                    <div class="variant-cell__run">
-                      <ThemedTooltip :label="getVariantRunTooltip(id)">
-                        <span class="variant-cell__run-trigger">
-                          <NButton
-                            type="primary"
-                            size="small"
-                            circle
-                            :loading="variantRunning[id]"
-                            :disabled="variantRunning[id] || isVariantModelUnsupported(id)"
-                            :data-testid="getVariantRunTestId(id)"
-                            @click="runVariant(id)"
-                          >
-                            <template #icon>
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            </template>
-                          </NButton>
-                        </span>
-                      </ThemedTooltip>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </NCard>
-
-          <div class="variant-results-wrap">
-            <div class="variant-results" :style="{ gridTemplateColumns: testGridTemplateColumns }">
-              <NCard
-                v-for="id in activeVariantIds"
-                :key="id"
-                size="small"
-                class="variant-result-card"
-                content-style="padding: 0; height: 100%; max-height: 100%; overflow: hidden;"
-              >
-                <div class="result-container">
-                  <div class="result-body">
-                  <template v-if="hasVariantResult(id)">
-                    <NSpace vertical :size="12" style="padding: 12px;">
-                      <NFlex justify="end" align="center">
-                        <SaveTestResultExampleButton
-                          sub-mode-key="image-multiimage"
-                          :variant-id="id"
-                          :content="optimizedPrompt || originalPrompt"
-                          :original-content="originalPrompt"
-                          function-mode="image"
-                          image-sub-mode="multiimage"
-                          :disabled="variantRunning[id]"
-                          :test-id="`save-test-example-image-multiimage-${id}`"
-                        />
-                      </NFlex>
-                      <AppPreviewImage
-                        v-if="getVariantResult(id)?.images?.[0]"
-                        :data-testid="getVariantImageTestId(id)"
-                        :src="getImageSrc(getVariantResult(id)?.images?.[0])"
-                        object-fit="contain"
-                        :img-props="{
-                          style: {
-                            width: '100%',
-                            height: 'auto',
-                            display: 'block',
-                          },
-                        }"
-                      />
-                      <NCard v-if="getVariantResult(id)?.text" size="small" :title="t('imageWorkspace.results.textOutput')">
-                        <NText :depth="2" style="white-space: pre-wrap; line-height: 1.5;">{{ getVariantResult(id)?.text }}</NText>
-                      </NCard>
-
-                      <ImageTokenUsage
-                        :metadata="getVariantResult(id)?.metadata"
-                        :image="getVariantResult(id)?.images?.[0]"
-                        :input-images-info="getVariantInputImagesInfo(id)"
-                      />
-
-                      <NSpace justify="center" :size="8">
-                        <NButton size="small" :disabled="!getVariantResult(id)?.images?.[0]" @click="downloadImageFromResult(getVariantResult(id)?.images?.[0])">
-                          <template #icon>
-                            <NIcon>
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                              </svg>
-                            </NIcon>
-                          </template>
-                          {{ t('imageWorkspace.results.download') }}
-                        </NButton>
-                        <NButton v-if="getVariantResult(id)?.text" size="small" secondary @click="copyImageText(String(getVariantResult(id)?.text || ''))">
-                          <template #icon>
-                            <NIcon>
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
-                              </svg>
-                            </NIcon>
-                          </template>
-                          {{ t('imageWorkspace.results.copyText') }}
-                        </NButton>
-                      </NSpace>
-                    </NSpace>
-                  </template>
-                  <NEmpty v-else :description="t('imageWorkspace.results.noGenerationResult')" style="padding: 24px 12px;" />
-                  </div>
-                </div>
-              </NCard>
-            </div>
-          </div>
-        </NFlex>
       </div>
     </div>
 
@@ -665,9 +430,7 @@ import { OptionAccessors } from '../../utils/data-transformer'
 import type { VariableManagerHooks } from '../../composables/prompt/useVariableManager'
 import PromptPanelUI from '../PromptPanel.vue'
 import PromptPreviewPanel from '../PromptPreviewPanel.vue'
-import ImageModelQuickSwitch from '../ImageModelQuickSwitch.vue'
 import SelectWithConfig from '../SelectWithConfig.vue'
-import TextModelQuickSwitch from '../TextModelQuickSwitch.vue'
 import TestSourceLinkedCard from '../TestSourceLinkedCard.vue'
 import TestVariantSourceTag from '../TestVariantSourceTag.vue'
 import FullscreenDialog from '../FullscreenDialog.vue'
@@ -679,7 +442,6 @@ import ThemedTooltip from '../common/ThemedTooltip.vue'
 import VariableValuePreviewDialog from '../variable/VariableValuePreviewDialog.vue'
 import TestPanelVersionSelect from '../TestPanelVersionSelect.vue'
 import ImageTokenUsage from './ImageTokenUsage.vue'
-import SaveTestResultExampleButton from '../SaveTestResultExampleButton.vue'
 import { EvaluationPanel } from '../evaluation'
 
 const { t } = useI18n()
@@ -795,7 +557,6 @@ const optimizedReasoning = computed<string>({
 
 const modelSelection = useWorkspaceTextModelSelection(services, session)
 const selectedTextModelKey = modelSelection.selectedTextModelKey
-const textModelOptions = modelSelection.textModelOptions
 const functionModelManager = useFunctionModelManager(services)
 
 const templateSelection = useWorkspaceTemplateSelection(
@@ -1227,8 +988,24 @@ watch(
   { deep: true },
 )
 
-const clampLeftPct = (pct: number) => Math.min(50, Math.max(25, pct))
+// ==================== 主布局：可拖拽分栏（左侧 25%~50%） ====================
+// 说明：分栏使用百分比，但通过 minmax() 约束两栏的最小像素宽度，
+// 避免窗口缩小时输入栏或输出区被压碎（控件重叠/裁剪）。
+
+// 分栏比例允许范围（百分比）
+const MIN_SPLIT_LEFT_PCT = 25
+const MAX_SPLIT_LEFT_PCT = 50
+// 左栏最小像素宽度（防止窄窗下输入栏被压碎）
+const MIN_SPLIT_LEFT_PX = 360
+
+const clampLeftPct = (pct: number) => Math.min(MAX_SPLIT_LEFT_PCT, Math.max(MIN_SPLIT_LEFT_PCT, pct))
 const mainSplitLeftPct = ref<number>(50)
+
+// 分栏网格：左栏下限随容器宽度缩放 min(360px, 50%)，避免窄窗下右栏被压得过窄；
+// 右栏 = 剩余空间（minmax(0, 1fr)），窄窗下收缩而不溢出，避免被 overflow:hidden 裁剪。
+const splitGridTemplateColumns = computed(() =>
+  `minmax(min(${MIN_SPLIT_LEFT_PX}px, ${mainSplitLeftPct.value}%), ${mainSplitLeftPct.value}%) 12px minmax(0, 1fr)`,
+)
 
 watch(
   () => session.layout.mainSplitLeftPct,
@@ -1288,9 +1065,9 @@ const onSplitKeydown = (event: KeyboardEvent) => {
 
   event.preventDefault()
   if (event.key === 'Home') {
-    mainSplitLeftPct.value = 25
+    mainSplitLeftPct.value = MIN_SPLIT_LEFT_PCT
   } else if (event.key === 'End') {
-    mainSplitLeftPct.value = 50
+    mainSplitLeftPct.value = MAX_SPLIT_LEFT_PCT
   } else {
     const delta = event.key === 'ArrowLeft' ? -1 : 1
     mainSplitLeftPct.value = clampLeftPct(mainSplitLeftPct.value + delta)
@@ -1905,20 +1682,11 @@ type TemplateEntryType =
 
 const appOpenTemplateManager = inject<((type?: TemplateEntryType) => void) | null>('openTemplateManager', null)
 const appOpenModelManager = inject<((tab?: 'text' | 'image' | 'function') => void) | null>('openModelManager', null)
-const appHandleSaveFavorite = inject<((data: { content: string; originalContent?: string }) => void) | null>('handleSaveFavorite', null)
 
 const onOpenTemplateManager = (type: TemplateEntryType) => {
   const target: TemplateEntryType =
     type === 'iterate' || type === 'contextIterate' ? 'imageIterate' : type
   appOpenTemplateManager?.(target)
-}
-
-const handleSaveFavorite = (data: { content: string; originalContent?: string }) => {
-  if (appHandleSaveFavorite) {
-    appHandleSaveFavorite(data)
-  } else {
-    console.warn('[ImageMultiImageWorkspace] handleSaveFavorite not available from App.vue')
-  }
 }
 
 const handleClearContent = () => {
@@ -2032,10 +1800,6 @@ const handleTemplateSelectFocus = async () => {
   await refreshTemplatesHandler()
 }
 
-const handleTextModelSelectFocus = async () => {
-  await refreshTextModelsHandler()
-}
-
 onMounted(async () => {
   await initialize()
 
@@ -2070,7 +1834,7 @@ onUnmounted(() => {
 .split-pane { min-height: 0; min-width: 0; overflow: hidden; }
 .hidden-input { display: none; }
 .image-card-list { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; overscroll-behavior-x: contain; overscroll-behavior-y: contain; touch-action: pan-y; }
-.image-card { display: flex; flex-direction: column; gap: 8px; width: 116px; padding: 8px; border: 1px solid var(--n-border-color); border-radius: 14px; background: var(--n-color); transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, opacity 0.18s ease; }
+.image-card { display: flex; flex-direction: column; gap: 8px; width: 116px; min-width: 100px; max-width: 140px; flex: 1 1 100px; padding: 8px; border: 1px solid var(--n-border-color); border-radius: 14px; background: var(--n-color); transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, opacity 0.18s ease; }
 .image-card:hover { border-color: var(--n-border-color-hover); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06); }
 .image-card--dragging { opacity: 0.68; transform: scale(0.98); }
 .image-card--drop-target { border-color: var(--n-primary-color); box-shadow: 0 0 0 2px var(--n-primary-color-suppl); }
@@ -2132,7 +1896,7 @@ onUnmounted(() => {
   letter-spacing: -1px;
 }
 .image-card__label { flex: 1; min-width: 0; text-align: left; }
-.image-upload-card { width: 116px; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; padding: 8px; border: 1px dashed var(--n-border-color); border-radius: 14px; background: var(--n-color-embedded); color: var(--n-text-color-2); cursor: pointer; appearance: none; font: inherit; text-align: center; transition: border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, transform 0.18s ease; }
+.image-upload-card { width: 116px; min-width: 100px; max-width: 140px; flex: 1 1 100px; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; padding: 8px; border: 1px dashed var(--n-border-color); border-radius: 14px; background: var(--n-color-embedded); color: var(--n-text-color-2); cursor: pointer; appearance: none; font: inherit; text-align: center; transition: border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, transform 0.18s ease; }
 .image-upload-card:hover { border-color: var(--n-border-color-hover); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05); transform: translateY(-1px); }
 .image-upload-card:focus-visible { outline: none; border-color: var(--n-primary-color); box-shadow: 0 0 0 2px var(--n-primary-color-suppl); }
 .image-upload-card--drop-target { border-color: var(--n-primary-color); box-shadow: 0 0 0 2px var(--n-primary-color-suppl); color: var(--n-primary-color); }

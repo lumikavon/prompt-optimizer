@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures'
+import { navigateToMode, readSelectedTextModelKey, seedTextModelKey } from '../helpers/common'
 
 /**
  * Image Text2Image 模式 - Session 持久化测试
@@ -31,33 +32,22 @@ test.describe('Image Text2Image - Session Persistence', () => {
   }
 
   test('切换文本模型后刷新页面，选择应该保留', async ({ page }) => {
-    await gotoMode(page, '/#/image/text2image')
+    await navigateToMode(page, 'image', 'text2image')
 
-    const select = await getSelectByLabel(page, /Text Model|文本模型|文字模型/i)
-    await select.click()
-
-    const optionLocator = page.locator('.n-base-select-option')
-    await expect(optionLocator.first()).toBeVisible({ timeout: 20000 })
-
-    const count = await optionLocator.count()
-    expect(count).toBeGreaterThan(0)
-    if (count < 2) test.skip(true, 'only one text model option')
-
-    const target = normalizeText(await optionLocator.nth(1).textContent())
-    await optionLocator.nth(1).click()
-
+    // 文本模型下拉已从输入面板移除（统一在"优化模型配置"弹窗配置），
+    // 这里通过 seed session store 模拟“已选择文本模型”并持久化。
+    await seedTextModelKey(page, 'image-text2image', 'dashscope')
     await expect
-      .poll(async () => normalizeText(await select.textContent()), { timeout: 20000 })
-      .toBe(target)
+      .poll(async () => readSelectedTextModelKey(page, 'image-text2image'), { timeout: 20000 })
+      .toBe('dashscope')
 
     await page.reload()
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(1500)
 
-    const selectAfter = await getSelectByLabel(page, /Text Model|文本模型|文字模型/i)
     await expect
-      .poll(async () => normalizeText(await selectAfter.textContent()), { timeout: 20000 })
-      .toBe(target)
+      .poll(async () => readSelectedTextModelKey(page, 'image-text2image'), { timeout: 20000 })
+      .toBe('dashscope')
   })
 
   test('切换模板后刷新页面，选择应该保留', async ({ page }) => {

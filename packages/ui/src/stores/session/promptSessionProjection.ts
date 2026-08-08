@@ -11,8 +11,6 @@ import {
 import { SESSION_SUB_MODE_KEYS, type SubModeKey } from './sessionKeys'
 import type { BasicSystemSessionApi } from './useBasicSystemSession'
 import type { BasicUserSessionApi } from './useBasicUserSession'
-import type { ProMultiMessageSessionApi } from './useProMultiMessageSession'
-import type { ProVariableSessionApi } from './useProVariableSession'
 import type { ImageText2ImageSessionApi } from './useImageText2ImageSession'
 import type { ImageImage2ImageSessionApi } from './useImageImage2ImageSession'
 import type { ImageMultiImageSessionApi } from './useImageMultiImageSession'
@@ -20,8 +18,6 @@ import type { ImageMultiImageSessionApi } from './useImageMultiImageSession'
 export type PromptSessionProjectionStoreMap = {
   'basic-system': BasicSystemSessionApi
   'basic-user': BasicUserSessionApi
-  'pro-multi': ProMultiMessageSessionApi
-  'pro-variable': ProVariableSessionApi
   'image-text2image': ImageText2ImageSessionApi
   'image-image2image': ImageImage2ImageSessionApi
   'image-multiimage': ImageMultiImageSessionApi
@@ -95,61 +91,6 @@ const buildTextSnapshot = (
     inputImages: assetId ? [{ _type: 'image-ref', id: assetId }] : [],
   }
 }
-
-const buildProVariableSnapshot = (
-  session: ProVariableSessionApi,
-): LegacyPromptSessionSnapshot => ({
-  subModeKey: 'pro-variable',
-  prompt: session.prompt,
-  optimizedPrompt: session.optimizedPrompt,
-  reasoning: session.reasoning,
-  chainId: session.chainId,
-  versionId: session.versionId,
-  testContent: session.testContent,
-  temporaryVariables: session.temporaryVariables,
-  testVariants: session.testVariants,
-  testVariantResults: session.testVariantResults,
-  testVariantLastRunFingerprint: session.testVariantLastRunFingerprint,
-  selectedOptimizeModelKey: session.selectedOptimizeModelKey,
-  selectedTestModelKey: session.selectedTestModelKey,
-  selectedTemplateId: session.selectedTemplateId,
-  selectedIterateTemplateId: session.selectedIterateTemplateId,
-  isCompareMode: session.isCompareMode,
-  lastActiveAt: session.lastActiveAt,
-  assetBinding: session.assetBinding,
-  origin: session.origin,
-  ui: {
-    layout: session.layout,
-  },
-})
-
-const buildProMultiSnapshot = (
-  session: ProMultiMessageSessionApi,
-): LegacyPromptSessionSnapshot => ({
-  subModeKey: 'pro-multi',
-  conversationMessagesSnapshot: session.conversationMessagesSnapshot,
-  selectedMessageId: session.selectedMessageId,
-  optimizedPrompt: session.optimizedPrompt,
-  reasoning: session.reasoning,
-  chainId: session.chainId,
-  versionId: session.versionId,
-  temporaryVariables: session.temporaryVariables,
-  messageChainMap: session.messageChainMap,
-  testVariants: session.testVariants,
-  testVariantResults: session.testVariantResults,
-  testVariantLastRunFingerprint: session.testVariantLastRunFingerprint,
-  selectedOptimizeModelKey: session.selectedOptimizeModelKey,
-  selectedTestModelKey: session.selectedTestModelKey,
-  selectedTemplateId: session.selectedTemplateId,
-  selectedIterateTemplateId: session.selectedIterateTemplateId,
-  isCompareMode: session.isCompareMode,
-  lastActiveAt: session.lastActiveAt,
-  assetBinding: session.assetBinding,
-  origin: session.origin,
-  ui: {
-    layout: session.layout,
-  },
-})
 
 const buildImageTextSnapshot = (
   subModeKey: 'image-text2image',
@@ -249,10 +190,6 @@ export const buildLegacyPromptSessionSnapshot = (
   switch (subModeKey) {
     case 'basic-user':
       return buildTextSnapshot(subModeKey, stores[subModeKey])
-    case 'pro-multi':
-      return buildProMultiSnapshot(stores[subModeKey])
-    case 'pro-variable':
-      return buildProVariableSnapshot(stores[subModeKey])
     case 'image-text2image':
       return buildImageTextSnapshot(subModeKey, stores[subModeKey])
     case 'image-image2image':

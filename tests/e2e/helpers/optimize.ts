@@ -7,8 +7,6 @@ export type OptimizeWorkspaceMode =
   | 'image-text2image'
   | 'image-image2image'
   | 'image-multiimage'
-  | 'pro-variable'
-  | 'pro-multi'
 
 export function getWorkspace(page: Page, mode: OptimizeWorkspaceMode) {
   return page.locator(`[data-testid="workspace"][data-mode="${mode}"]`)
@@ -213,48 +211,3 @@ export async function verifyOptimizeButtonDisabledWhenEmpty(page: Page, mode: Op
   await expect(button).toBeDisabled()
 }
 
-export async function addProMultiUserMessage(page: Page, content: string) {
-  const firstAddButton = page.getByTestId('pro-multi-add-first-message').first()
-  if (await firstAddButton.isVisible().catch(() => false)) {
-    await firstAddButton.click()
-  } else {
-    const addButton = page.getByTestId('pro-multi-add-message').first()
-    await expect(addButton).toBeVisible({ timeout: 20000 })
-    await addButton.click()
-  }
-
-  // 新增消息后，列表最后一项应该出现
-  // 我们给 message card 加了 data-testid=pro-multi-message-card-{index}
-  // 这里用“最后一个 message card”的内容输入框填写。
-  const messageCards = page.locator('[data-testid^="pro-multi-message-card-"]')
-  await expect(messageCards.first()).toBeVisible({ timeout: 20000 })
-
-  const lastCard = messageCards.last()
-  // VariableAwareInput 内部是 textarea 或 CodeMirror
-  const cm = lastCard.locator('.cm-content')
-  if ((await cm.count()) > 0) {
-    await cm.click()
-    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A')
-    await page.keyboard.type(content)
-  } else {
-    const textarea = lastCard.locator('textarea')
-    await textarea.fill(content)
-  }
-}
-
-export async function selectProMultiMessageForOptimization(page: Page, index: number) {
-  // Pro Multi 现在自动选中最新消息；保留此 helper 以兼容旧测试。
-  // 若选择按钮存在则点击，不存在则视为已自动选中。
-  const selectButton = page.getByTestId(`pro-multi-select-message-${index}`)
-  if ((await selectButton.count()) > 0) {
-    await expect(selectButton).toBeVisible({ timeout: 20000 })
-    await selectButton.click()
-  }
-}
-
-export async function clickProMultiOptimizeButton(page: Page) {
-  const button = page.getByTestId('pro-multi-optimize-button')
-  await expect(button).toBeVisible({ timeout: 20000 })
-  await expect(button).toBeEnabled({ timeout: 20000 })
-  await button.click()
-}

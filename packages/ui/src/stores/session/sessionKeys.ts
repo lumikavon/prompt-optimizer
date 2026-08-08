@@ -1,12 +1,14 @@
-import type { LegacySessionSubModeKey } from '@prompt-optimizer/core'
-
-export type SubModeKey = LegacySessionSubModeKey
+// 子模式键（上下文/Pro 模式已删除）
+export type SubModeKey =
+  | 'basic-system'
+  | 'basic-user'
+  | 'image-text2image'
+  | 'image-image2image'
+  | 'image-multiimage'
 
 export const SESSION_SUB_MODE_KEYS = [
   'basic-system',
   'basic-user',
-  'pro-multi',
-  'pro-variable',
   'image-text2image',
   'image-image2image',
   'image-multiimage',
@@ -15,8 +17,6 @@ export const SESSION_SUB_MODE_KEYS = [
 export const SESSION_STORAGE_KEYS: Record<SubModeKey, string> = {
   'basic-system': 'session/v1/basic-system',
   'basic-user': 'session/v1/basic-user',
-  'pro-multi': 'session/v1/pro-multi',
-  'pro-variable': 'session/v1/pro-variable',
   'image-text2image': 'session/v1/image-text2image',
   'image-image2image': 'session/v1/image-image2image',
   'image-multiimage': 'session/v1/image-multiimage',

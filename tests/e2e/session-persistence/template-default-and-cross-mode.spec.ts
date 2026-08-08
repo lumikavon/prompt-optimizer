@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures'
+import { waitForAppReady } from '../helpers/common'
 
 type ModeCase = {
   name: string
@@ -8,34 +9,21 @@ type ModeCase = {
   workspaceMode: string
 }
 
+// 说明：Pro 模式已随 UI 重构移除，此处只保留现存工作区（2 Basic + 2 Image）。
 const MODE_CASES: ModeCase[] = [
   {
     name: 'basic-system',
     route: '/#/basic/system',
-    templateLabel: /优化提示词模板|Optimization Template/i,
-    switchTo: '/#/pro/variable',
+    templateLabel: /优化提示词模板|优化提示词|Optimization Template/i,
+    switchTo: '/#/image/text2image',
     workspaceMode: 'basic-system',
   },
   {
     name: 'basic-user',
     route: '/#/basic/user',
-    templateLabel: /优化提示词模板|Optimization Template/i,
-    switchTo: '/#/pro/variable',
+    templateLabel: /优化提示词模板|优化提示词|Optimization Template/i,
+    switchTo: '/#/image/text2image',
     workspaceMode: 'basic-user',
-  },
-  {
-    name: 'pro-multi',
-    route: '/#/pro/multi',
-    templateLabel: /优化提示词模板|Optimization Template/i,
-    switchTo: '/#/image/text2image',
-    workspaceMode: 'pro-multi',
-  },
-  {
-    name: 'pro-variable',
-    route: '/#/pro/variable',
-    templateLabel: /优化提示词模板|Optimization Template/i,
-    switchTo: '/#/image/text2image',
-    workspaceMode: 'pro-variable',
   },
   {
     name: 'image-text2image',
@@ -58,12 +46,13 @@ function normalizeText(text: string | null | undefined): string {
 }
 
 async function gotoMode(page: any, route: string) {
-  // 统一走“用户路径”：从 / 进入，再通过顶部导航切换到目标工作区
-  const mode = route.includes('/#/basic') ? 'basic' : route.includes('/#/pro') ? 'pro' : 'image'
+  // 统一走”用户路径”：从 / 进入，再通过顶部导航切换到目标工作区
+  const mode = route.includes('/#/basic') ? 'basic' : 'image'
   const parts = route.replace('/#/', '').split('/')
   const sub = parts[1] || ''
 
   await page.goto('/', { waitUntil: 'domcontentloaded' })
+  await waitForAppReady(page)
   await expect(page.locator('[data-testid="workspace"]').first()).toBeVisible({ timeout: 20000 })
 
   await page.getByTestId('function-mode-selector').getByTestId(`function-mode-${mode}`).click()
@@ -81,8 +70,6 @@ async function gotoMode(page: any, route: string) {
 function workspaceModeFromRoute(route: string): string {
   if (route.includes('/#/basic/system')) return 'basic-system'
   if (route.includes('/#/basic/user')) return 'basic-user'
-  if (route.includes('/#/pro/multi')) return 'pro-multi'
-  if (route.includes('/#/pro/variable')) return 'pro-variable'
   if (route.includes('/#/image/text2image')) return 'image-text2image'
   if (route.includes('/#/image/image2image')) return 'image-image2image'
   return ''

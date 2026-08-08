@@ -15,7 +15,7 @@
           v-model:value="searchQuery"
           :placeholder="t('history.searchPlaceholder')"
           size="small"
-          style="width: 200px"
+          style="width: 100%; max-width: 260px"
           clearable
         >
           <template #prefix>
@@ -105,10 +105,6 @@
                 >
                   {{ t('imageMode.multiimage') }}
                 </NTag>
-                <SourceAssetBadge
-                  v-if="getChainSource(chain)"
-                  :source="getChainSource(chain)!"
-                />
               </NSpace>
               <NButton
                 @click="deleteChain(chain.chainId)"
@@ -229,7 +225,6 @@ import {
 import type { PromptRecord, PromptRecordChain } from '@prompt-optimizer/core'
 import { useConfirmDialog } from '../composables/ui/useConfirmDialog'
 import { useToast } from '../composables/ui/useToast'
-import SourceAssetBadge from './source/SourceAssetBadge.vue'
 import { extractHistorySourceBinding } from '../utils/history-source-binding'
 import { resolveSourceAssetRef } from '../utils/source-asset'
 

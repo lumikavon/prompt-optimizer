@@ -5,8 +5,6 @@ export const DEFAULT_WORKSPACE_PATH = '/basic/system'
 export const WORKSPACE_SUB_MODE_KEYS: ReadonlyArray<SubModeKey> = [
   'basic-system',
   'basic-user',
-  'pro-multi',
-  'pro-variable',
   'image-text2image',
   'image-image2image',
   'image-multiimage',
@@ -14,7 +12,6 @@ export const WORKSPACE_SUB_MODE_KEYS: ReadonlyArray<SubModeKey> = [
 
 const WORKSPACE_SUB_MODES = {
   basic: ['system', 'user'],
-  pro: ['multi', 'variable'],
   image: ['text2image', 'image2image', 'multiimage'],
 } as const
 
@@ -29,7 +26,7 @@ export interface WorkspaceRouteInfo {
 
 export const parseWorkspaceRoutePath = (path: string): WorkspaceRouteInfo | null => {
   const cleanPath = path.split('?')[0].split('#')[0]
-  const match = cleanPath.match(/^\/(basic|pro|image)\/([^/]+)$/)
+  const match = cleanPath.match(/^\/(basic|image)\/([^/]+)$/)
   if (!match) return null
 
   const [, mode, subMode] = match as [string, WorkspaceMode, string]
@@ -68,6 +65,5 @@ export const resolveWorkspacePathFallback = (...candidates: unknown[]): string =
 
 export const getDefaultSubModeForWorkspaceMode = (mode: WorkspaceMode): string => {
   if (mode === 'image') return 'text2image'
-  if (mode === 'pro') return 'variable'
   return 'system'
 }

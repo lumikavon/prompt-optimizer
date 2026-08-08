@@ -3,10 +3,8 @@ import { resolve } from 'node:path'
 import { test, expect, type Page } from '../fixtures'
 import { navigateToMode, switchModeViaUI } from '../helpers/common'
 import {
-  addProMultiUserMessage,
   fillOriginalPrompt,
   getWorkspace,
-  readOutputByTestIdText,
   type OptimizeWorkspaceMode,
 } from '../helpers/optimize'
 
@@ -16,7 +14,7 @@ const IMAGE_TEXT2IMAGE_PROMPT = 'E2E image text2image prompt must survive basic 
 type ClearableWorkspaceMode = OptimizeWorkspaceMode | 'image-multiimage'
 
 type WorkspaceRoute = {
-  mode: 'basic' | 'pro' | 'image'
+  mode: 'basic' | 'image'
   subMode: string
   workspaceMode: ClearableWorkspaceMode
 }
@@ -26,27 +24,10 @@ type WorkspaceClearCase = WorkspaceRoute & {
   seed: (page: Page) => Promise<void>
   expectSeeded: (page: Page) => Promise<void>
   expectCleared: (page: Page) => Promise<void>
-  expectDerivedSeeded?: (page: Page) => Promise<void>
-  expectDerivedCleared?: (page: Page) => Promise<void>
 }
 
 const IMAGE_FIXTURE = resolve(process.cwd(), 'tests/e2e/fixtures/images/text2image-output.png')
 const SECOND_IMAGE_FIXTURE = resolve(process.cwd(), 'packages/desktop/icons/app-icon.png')
-const FAKE_IMAGE_B64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='
-
-const TEXT_RESULT_MODES = new Set<ClearableWorkspaceMode>([
-  'basic-system',
-  'basic-user',
-  'pro-multi',
-  'pro-variable',
-])
-
-const IMAGE_RESULT_MODES = new Set<ClearableWorkspaceMode>([
-  'image-text2image',
-  'image-image2image',
-  'image-multiimage',
-])
 
 async function getOriginalPromptEditor(page: Page, mode: ClearableWorkspaceMode) {
   const workspace = getWorkspace(page, mode)
@@ -80,162 +61,6 @@ async function expectOriginalPromptValue(page: Page, mode: ClearableWorkspaceMod
   await expect.poll(async () => readOriginalPromptValue(page, mode), { timeout: 20000 }).toBe(value)
 }
 
-function getStoreId(mode: ClearableWorkspaceMode) {
-  return {
-    'basic-system': 'basicSystemSession',
-    'basic-user': 'basicUserSession',
-    'pro-multi': 'proMultiMessageSession',
-    'pro-variable': 'proVariableSession',
-    'image-text2image': 'imageText2ImageSession',
-    'image-image2image': 'imageImage2ImageSession',
-    'image-multiimage': 'imageMultiImageSession',
-  }[mode]
-}
-
-function getTextOutputTestIds(mode: ClearableWorkspaceMode) {
-  return {
-    original: `${mode}-test-original-output`,
-    optimized: `${mode}-test-optimized-output`,
-  }
-}
-
-function getImageOutputTestIds(mode: ClearableWorkspaceMode) {
-  const prefix = mode
-  return {
-    original: `${prefix}-original-image`,
-    optimized: `${prefix}-optimized-image`,
-  }
-}
-
-async function fillTestInputIfAvailable(page: Page, mode: ClearableWorkspaceMode) {
-  const input = page.getByTestId(`${mode}-test-input`)
-  if ((await input.count()) === 0) return
-
-  const textarea = input.locator('textarea').first()
-  await expect(textarea).toBeVisible({ timeout: 10000 })
-  await textarea.fill(`E2E test input ${mode}`)
-}
-
-async function expectTestInputClearedIfAvailable(page: Page, mode: ClearableWorkspaceMode) {
-  const input = page.getByTestId(`${mode}-test-input`)
-  if ((await input.count()) === 0) return
-
-  await expect(input.locator('textarea').first()).toHaveValue('')
-}
-
-async function seedAndPersistDerivedState(page: Page, mode: ClearableWorkspaceMode) {
-  await fillTestInputIfAvailable(page, mode)
-
-  await page.evaluate(
-    async ({ mode, storeId, fakeImageB64 }) => {
-      const app = (document.querySelector('#app') as any)?.__vue_app__
-      const pinia = app?.config?.globalProperties?.$pinia
-      const store = pinia?._s?.get(storeId)
-      if (!store) throw new Error(`Store not found for ${mode}: ${storeId}`)
-
-      store.updateOptimizedResult?.({
-        optimizedPrompt: `E2E optimized workspace result ${mode}`,
-        reasoning: `E2E reasoning ${mode}`,
-        chainId: '',
-        versionId: '',
-      })
-      store.updateTestContent?.(`E2E test input ${mode}`)
-
-      if (mode === 'pro-multi' && store.updateConversationMessages) {
-        const messages = Array.isArray(store.conversationMessagesSnapshot)
-          ? store.conversationMessagesSnapshot
-          : []
-        if (messages.length === 0) {
-          store.updateConversationMessages([
-            {
-              id: `e2e-message-${mode}`,
-              role: 'user',
-              content: `E2E clear pro multi message`,
-              timestamp: Date.now(),
-            },
-          ])
-        }
-      }
-
-      const textResult = {
-        a: { result: `E2E test result ${mode} original`, reasoning: `E2E result reasoning ${mode} original` },
-        b: { result: `E2E test result ${mode} optimized`, reasoning: `E2E result reasoning ${mode} optimized` },
-        c: { result: '', reasoning: '' },
-        d: { result: '', reasoning: '' },
-      }
-
-      const imageResult = (label: string) => ({
-        images: [{ b64: fakeImageB64, mimeType: 'image/png' }],
-        text: `E2E image test result ${mode} ${label}`,
-        metadata: {
-          providerId: 'e2e',
-          modelId: 'e2e-image-model',
-          configId: 'e2e-config',
-          tokenUsage: {
-            totalTokens: 12,
-          },
-        },
-      })
-
-      if (mode.startsWith('image-')) {
-        store.updateOriginalImageResult?.(imageResult('original'))
-        store.updateOptimizedImageResult?.(imageResult('optimized'))
-        store.updateTestVariantResult?.('a', imageResult('original'))
-        store.updateTestVariantResult?.('b', imageResult('optimized'))
-        store.setTestVariantLastRunFingerprint?.('a', `e2e-fingerprint-${mode}-a`)
-        store.setTestVariantLastRunFingerprint?.('b', `e2e-fingerprint-${mode}-b`)
-      } else {
-        store.testVariantResults = {
-          ...(store.testVariantResults || {}),
-          ...textResult,
-        }
-        store.testVariantLastRunFingerprint = {
-          ...(store.testVariantLastRunFingerprint || {}),
-          a: `e2e-fingerprint-${mode}-a`,
-          b: `e2e-fingerprint-${mode}-b`,
-        }
-      }
-
-      await store.saveSession?.()
-    },
-    { mode, storeId: getStoreId(mode), fakeImageB64: FAKE_IMAGE_B64 },
-  )
-}
-
-async function expectDerivedSeeded(page: Page, mode: ClearableWorkspaceMode) {
-  if (TEXT_RESULT_MODES.has(mode)) {
-    const ids = getTextOutputTestIds(mode)
-    await expect
-      .poll(async () => readOutputByTestIdText(page, ids.original), { timeout: 20000 })
-      .toContain(`E2E test result ${mode} original`)
-    await expect
-      .poll(async () => readOutputByTestIdText(page, ids.optimized), { timeout: 20000 })
-      .toContain(`E2E test result ${mode} optimized`)
-  }
-
-  if (IMAGE_RESULT_MODES.has(mode)) {
-    const ids = getImageOutputTestIds(mode)
-    await expect(page.getByTestId(ids.original).locator('img')).toHaveAttribute('src', /^data:image\//, { timeout: 20000 })
-    await expect(page.getByTestId(ids.optimized).locator('img')).toHaveAttribute('src', /^data:image\//, { timeout: 20000 })
-  }
-}
-
-async function expectDerivedCleared(page: Page, mode: ClearableWorkspaceMode) {
-  await expectTestInputClearedIfAvailable(page, mode)
-
-  const workspace = getWorkspace(page, mode)
-  await expect(workspace.getByText(`E2E test result ${mode} original`)).toHaveCount(0)
-  await expect(workspace.getByText(`E2E test result ${mode} optimized`)).toHaveCount(0)
-  await expect(workspace.getByText(`E2E image test result ${mode} original`)).toHaveCount(0)
-  await expect(workspace.getByText(`E2E image test result ${mode} optimized`)).toHaveCount(0)
-
-  if (IMAGE_RESULT_MODES.has(mode)) {
-    const ids = getImageOutputTestIds(mode)
-    await expect(page.getByTestId(ids.original)).toHaveCount(0)
-    await expect(page.getByTestId(ids.optimized)).toHaveCount(0)
-  }
-}
-
 async function clearWorkspaceContent(page: Page, mode: ClearableWorkspaceMode) {
   await page.getByTestId(`${mode}-workspace-utility-menu`).click()
 
@@ -258,7 +83,7 @@ async function clearWorkspaceContent(page: Page, mode: ClearableWorkspaceMode) {
 
 async function switchToWorkspace(
   page: Page,
-  mode: 'basic' | 'pro' | 'image',
+  mode: 'basic' | 'image',
   subMode: string,
   workspaceMode: ClearableWorkspaceMode,
 ) {
@@ -310,30 +135,8 @@ async function seedImageMultiImage(page: Page) {
   await expect(workspace.getByTestId('image-multiimage-card-2')).toBeVisible({ timeout: 20000 })
 }
 
-async function expectProMultiSeedMessage(page: Page, visible: boolean) {
-  await expect.poll(
-    async () => {
-      const cards = page.locator('[data-testid^="pro-multi-message-card-"]')
-      const values: string[] = []
-      for (let i = 0; i < await cards.count(); i += 1) {
-        const card = cards.nth(i)
-        const textarea = card.locator('textarea').first()
-        if ((await textarea.count()) > 0) {
-          values.push(await textarea.inputValue())
-          continue
-        }
-
-        const cmContent = card.locator('.cm-content').first()
-        if ((await cmContent.count()) > 0 && (await cmContent.locator('.cm-placeholder').count()) === 0) {
-          values.push((await cmContent.innerText()).trim())
-        }
-      }
-      return values.some((value) => value.includes('E2E clear pro multi message'))
-    },
-    { timeout: 20000 },
-  ).toBe(visible)
-}
-
+// 说明：Pro 模式（pro-multi / pro-variable）已随 UI 重构移除；测试区（test deck）也已移除，
+// 因此这里只验证各现存工作区的「提示词 + 上传图」内容在清理后清空并持久化。
 const CLEAR_CASES: WorkspaceClearCase[] = [
   {
     name: 'basic-system',
@@ -352,28 +155,6 @@ const CLEAR_CASES: WorkspaceClearCase[] = [
     seed: (page) => fillPrompt(page, 'basic-user', 'E2E clear basic user prompt'),
     expectSeeded: (page) => expectOriginalPromptValue(page, 'basic-user', 'E2E clear basic user prompt'),
     expectCleared: (page) => expectOriginalPromptValue(page, 'basic-user', ''),
-  },
-  {
-    name: 'pro-multi',
-    mode: 'pro',
-    subMode: 'multi',
-    workspaceMode: 'pro-multi',
-    seed: async (page) => {
-      await addProMultiUserMessage(page, 'E2E clear pro multi message')
-    },
-    expectSeeded: (page) => expectProMultiSeedMessage(page, true),
-    expectCleared: async (page) => {
-      await expectProMultiSeedMessage(page, false)
-    },
-  },
-  {
-    name: 'pro-variable',
-    mode: 'pro',
-    subMode: 'variable',
-    workspaceMode: 'pro-variable',
-    seed: (page) => fillPrompt(page, 'pro-variable', 'E2E clear pro variable prompt {{topic}}'),
-    expectSeeded: (page) => expectOriginalPromptValue(page, 'pro-variable', 'E2E clear pro variable prompt {{topic}}'),
-    expectCleared: (page) => expectOriginalPromptValue(page, 'pro-variable', ''),
   },
   {
     name: 'image-text2image',
@@ -429,20 +210,13 @@ test.describe('Workspace clear content', () => {
 
       await c.seed(page)
       await c.expectSeeded(page)
-      await seedAndPersistDerivedState(page, c.workspaceMode)
-      await expectDerivedSeeded(page, c.workspaceMode)
-      await c.expectDerivedSeeded?.(page)
 
       await clearWorkspaceContent(page, c.workspaceMode)
       await c.expectCleared(page)
-      await expectDerivedCleared(page, c.workspaceMode)
-      await c.expectDerivedCleared?.(page)
 
       await page.reload({ waitUntil: 'domcontentloaded' })
       await expect(getWorkspace(page, c.workspaceMode)).toBeVisible({ timeout: 20000 })
       await c.expectCleared(page)
-      await expectDerivedCleared(page, c.workspaceMode)
-      await c.expectDerivedCleared?.(page)
     })
   }
 

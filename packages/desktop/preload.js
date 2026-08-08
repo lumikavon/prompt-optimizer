@@ -1236,6 +1236,67 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Add an identifier so the frontend knows it's running in Electron
   isElectron: true,
 
+  // 自定义窗口控制（无边框窗口）
+  windowControls: {
+    minimize: async () => {
+      await ipcRenderer.invoke('window-minimize');
+    },
+    toggleMaximize: async () => {
+      await ipcRenderer.invoke('window-toggle-maximize');
+    },
+    close: async () => {
+      await ipcRenderer.invoke('window-close');
+    },
+    isMaximized: async () => {
+      const result = await ipcRenderer.invoke('window-is-maximized');
+      return Boolean(result);
+    },
+    onMaximizedChange: (callback) => {
+      const listener = (_event, maximized) => callback(Boolean(maximized));
+      ipcRenderer.on('window-maximized-changed', listener);
+      return () => {
+        ipcRenderer.removeListener('window-maximized-changed', listener);
+      };
+    },
+    openDevTools: async () => {
+      await ipcRenderer.invoke('window-open-devtools');
+    },
+  },
+
+  // 优化模型配置（~/.config/ai.yml 的 .ai.openai）：查看 / 修改
+  aiConfig: {
+    get: async () => {
+      const result = await ipcRenderer.invoke('ai-config-get');
+      if (!result.success) {
+        throw createIpcError(result.error);
+      }
+      return result.data;
+    },
+    set: async (config) => {
+      const result = await ipcRenderer.invoke('ai-config-set', config);
+      if (!result.success) {
+        throw createIpcError(result.error);
+      }
+      return result.data;
+    },
+    // 通过 models 接口获取可用模型（使用表单中的 base_url/api_key）
+    fetchModels: async (config) => {
+      const result = await ipcRenderer.invoke('ai-config-fetchModels', config);
+      if (!result.success) {
+        throw createIpcError(result.error);
+      }
+      return result.data;
+    },
+    // 测试 API 连接（使用表单中的 base_url/api_key/model）
+    test: async (config) => {
+      const result = await ipcRenderer.invoke('ai-config-test', config);
+      if (!result.success) {
+        throw createIpcError(result.error);
+      }
+      return result.data;
+    },
+  },
+
   // Preference Service interface
   preference: {
     get: async (key, defaultValue) => {

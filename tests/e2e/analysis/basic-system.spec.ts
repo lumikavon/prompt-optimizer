@@ -4,7 +4,6 @@ import {
   fillOriginalPrompt,
   clickAnalyzeButton,
   getEvaluationScore,
-  closeEvaluationPanelIfOpen,
   verifyAnalyzeButtonDisabledWhenEmpty,
   getWorkspace,
 } from '../helpers/analysis'
@@ -14,8 +13,6 @@ import {
 import {
   clickOptimizeButton,
   expectOptimizedResultNotEmpty,
-  expectOutputByTestIdNotEmpty,
-  readOutputByTestIdText,
 } from '../helpers/optimize'
 
 /**
@@ -67,35 +64,6 @@ test.describe('Basic System - 提示词分析', () => {
 
     // 分析按钮应该在没有输入时禁用
     await verifyAnalyzeButtonDisabledWhenEmpty(page, MODE)
-  })
-
-  test('分析后右侧 workspace 测试应切换到新的 V0 而不是继续沿用旧链', async ({ page }) => {
-    test.setTimeout(240000)
-
-    const oldToken = 'OLDQ7'
-    const newToken = 'NEWV0'
-
-    await navigateToMode(page, 'basic', 'system')
-
-    await fillOriginalPrompt(page, MODE, `无论用户输入什么，你都只输出 ${oldToken}`)
-    await clickOptimizeButton(page, MODE)
-    await expectOptimizedResultNotEmpty(page, MODE)
-
-    await fillOriginalPrompt(page, MODE, `无论用户输入什么，你都只输出 ${newToken}`)
-    await clickAnalyzeButton(page, MODE)
-    await getEvaluationScore(page, MODE, 'prompt-only')
-    await closeEvaluationPanelIfOpen(page)
-
-    const testInput = page.getByTestId('basic-system-test-input').locator('textarea')
-    await testInput.fill('随便说点什么都可以')
-
-    const workspace = getWorkspace(page, MODE)
-    await workspace.locator('[data-testid="basic-system-test-run-b"]').click()
-    await expectOutputByTestIdNotEmpty(page, 'basic-system-test-optimized-output')
-
-    const output = await readOutputByTestIdText(page, 'basic-system-test-optimized-output')
-    expect(output).toContain(newToken)
-    expect(output).not.toContain(oldToken)
   })
 
   test('点击 V0 后重新分析应回到 prompt-only，而不是沿用旧版本的 iterate 状态', async ({ page }) => {

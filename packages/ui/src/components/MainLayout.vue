@@ -2,17 +2,29 @@
   <!-- 使用ToastUI包装整个布局以提供NMessageProvider -->
   <ToastUI>
     <NLayout style="position: fixed; inset: 0; width: 100vw; height: 100vh;
+    height: 100dvh;
     max-height: 100vh;
+    max-height: 100dvh;
     overflow: hidden; display: flex; min-height: 0;"
     content-style="height: 100%; max-height: 100%; min-height: 0; overflow: hidden;"
     >
 
-      <NFlex vertical style="position: fixed; inset: 0; width: 100vw; max-height: 100vh; height: 100vh; min-height: 0;">
-      <!-- 顶部导航栏 -->
+      <div style="position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh; min-height: 0; display: flex; flex-direction: column; overflow: hidden;">
+      <!-- 顶部窗口控制条（桌面端无边框窗口：仅窗口控制按钮，工具栏在其下方） -->
+      <div
+        v-if="isDesktopWindow"
+        class="window-titlebar"
+        @dblclick="handleHeaderDblClick"
+      >
+        <div class="window-titlebar-spacer"></div>
+        <WindowControls />
+      </div>
+
+      <!-- 工具栏（导航栏） -->
       <NLayoutHeader class="theme-header nav-header-enhanced">
-        <NFlex justify="space-between" align="center" class="w-full nav-content" :wrap="false" :size="[16, 12]">
+        <NFlex justify="space-between" align="center" class="w-full nav-content" :wrap="true" :size="[16, 12]">
           <!-- 左侧：Logo + 标题 + 核心导航 -->
-          <NFlex align="center" :size="16" :wrap="false">
+          <NFlex align="center" :size="16" :wrap="true" class="min-w-0 flex-1">
             <!-- Logo + 标题 -->
             <NButton
               text
@@ -52,14 +64,15 @@
 
       <!-- 主要内容区域 - 严格控制在剩余空间内 -->
       <NLayoutContent has-sider
+        class="main-content-padding"
         style="flex: 1; min-height: 0; overflow: hidden;"
-        content-style="height: 100%; max-height: 100%; min-height: 0; box-sizing: border-box; padding: 24px clamp(16px, 2vw, 48px) 40px; display: flex; flex-direction: column; align-items: stretch; overflow: hidden;"
+        content-style="height: 100%; max-height: 100%; min-height: 0; box-sizing: border-box; padding: var(--main-content-padding, 24px clamp(16px, 2vw, 48px) 40px); display: flex; flex-direction: column; align-items: stretch; overflow: hidden;"
       >
         <div class="main-content-wrapper">
           <slot name="main"></slot>
         </div>
       </NLayoutContent>
-      </NFlex>
+      </div>
 
       <!-- 弹窗插槽 -->
       <slot name="modals"></slot>
@@ -76,6 +89,7 @@ import { NButton, NLayout, NLayoutHeader, NLayoutContent, NFlex, NText } from 'n
 import ToastUI from './Toast.vue'
 import logoImage from '../assets/logo.png'
 import AppPreviewImage from './media/AppPreviewImage.vue'
+import WindowControls from './app-layout/WindowControls.vue'
 import { openExternalUrl } from '../utils/open-external-url'
 
 const { t } = useI18n()
@@ -128,6 +142,18 @@ const logoSize = computed(() => {
 const openBrandWebsite = async () => {
   await openExternalUrl('https://always200.com', { logPrefix: 'MainLayout' })
 }
+
+// 桌面端无边框窗口检测（顶部窗口控制条仅在 Electron 桌面环境显示）
+const isDesktopWindow = Boolean(
+  (window as unknown as { electronAPI?: { isElectron?: boolean } })?.electronAPI?.isElectron
+)
+
+// 无边框窗口：双击窗口控制条空白区域切换最大化/还原
+const handleHeaderDblClick = () => {
+  const wc = (window as unknown as { electronAPI?: { windowControls?: { toggleMaximize?: () => Promise<void> } } })
+    ?.electronAPI?.windowControls
+  void wc?.toggleMaximize?.()
+}
 </script>
 
 <style>
@@ -147,6 +173,37 @@ const openBrandWebsite = async () => {
   min-height: 0;
 }
 
+/* 无边框窗口：顶部窗口控制条作为拖拽区域，按钮排除在外 */
+.window-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 34px;
+  min-height: 34px;
+  flex-shrink: 0;
+  padding: 0 4px 0 12px;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.window-titlebar-spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 矮窗口：压缩窗口控制条高度，让出更多垂直空间 */
+@media (max-height: 560px) {
+  .window-titlebar {
+    height: 26px;
+    min-height: 26px;
+  }
+}
+
+/* 工具栏不再作为拖拽区域 */
+.theme-header {
+  -webkit-app-region: no-drag;
+}
+
 /* 增强导航栏样式 */
 .nav-header-enhanced {
   min-height: 64px !important;
@@ -155,10 +212,13 @@ const openBrandWebsite = async () => {
 
 .nav-content {
   min-height: 40px;
+  row-gap: 8px;
 }
 
 .nav-actions {
   min-height: 40px;
+  /* 无操作按钮时仍保留最小宽度，防止窄窗下标题/导航被挤压 */
+  min-width: 48px;
 }
 
 .brand-link {
@@ -216,6 +276,34 @@ const openBrandWebsite = async () => {
   min-height: 32px;
 }
 
+/* 主要内容区域内边距（随视口尺寸缩放） */
+.main-content-padding {
+  --main-content-padding: 24px clamp(16px, 2vw, 48px) 40px;
+}
+
+/* 窄窗口：减少主要内容区域的内边距，腾出更多空间给工作区 */
+@media (max-width: 767px) {
+  .main-content-padding {
+    --main-content-padding: 16px 12px 28px;
+  }
+
+  .nav-header-enhanced {
+    min-height: 56px !important;
+  }
+}
+
+/* 矮窗口：降低头部与内容内边距，避免内容被裁剪 */
+@media (max-height: 620px) {
+  .main-content-padding {
+    --main-content-padding: 12px clamp(12px, 2vw, 24px) 20px;
+  }
+
+  .nav-header-enhanced {
+    padding: 8px 12px !important;
+    min-height: 52px !important;
+  }
+}
+
 /* 响应式优化 */
 @media (max-width: 639px) {
   .logo-image {
@@ -225,6 +313,10 @@ const openBrandWebsite = async () => {
   .core-navigation {
     margin-left: 8px;
     padding-left: 8px;
+  }
+
+  .nav-header-enhanced {
+    padding: 10px 12px !important;
   }
 }
 

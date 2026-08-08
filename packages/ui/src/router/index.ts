@@ -1,8 +1,6 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
 import { beforeRouteSwitch } from './guards'
 import RootBootstrapRoute from './RootBootstrapRoute'
-import ContextSystemWorkspace from '../components/context-mode/ContextSystemWorkspace.vue'
-import ContextUserWorkspace from '../components/context-mode/ContextUserWorkspace.vue'
 
 /**
  * Vue Router 配置
@@ -31,20 +29,7 @@ const routes: RouteRecordRaw[] = [
     name: 'basic-user',
     component: () => import('../components/basic-mode/BasicUserWorkspace.vue')
   },
-  // ✨ Pro 模式：2 个独立路由
-  // - /pro/multi: 多消息模式（ContextSystemWorkspace）
-  // - /pro/variable: 变量模式（ContextUserWorkspace）
-  {
-    path: '/pro/multi',
-    name: 'pro-multi',
-    component: ContextSystemWorkspace
-  },
-  {
-    path: '/pro/variable',
-    name: 'pro-variable',
-    component: ContextUserWorkspace
-  },
-  // ✨ Image 模式重构：2 个独立路由
+  // ✨ Image 模式重构：3 个独立路由
   {
     path: '/image/text2image',
     name: 'image-text2image',
@@ -59,11 +44,6 @@ const routes: RouteRecordRaw[] = [
     path: '/image/multiimage',
     name: 'image-multiimage',
     component: () => import('../components/image-mode/ImageMultiImageWorkspace.vue')
-  },
-  {
-    path: '/favorites',
-    name: 'favorites',
-    component: () => import('../components/favorites/FavoritesPage.vue')
   }
 ]
 

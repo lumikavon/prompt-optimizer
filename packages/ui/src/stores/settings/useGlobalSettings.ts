@@ -19,7 +19,6 @@ import { getPiniaServices } from '../../plugins/pinia'
 
 export type FunctionMode = 'basic' | 'pro' | 'image'
 export type BasicSubMode = 'system' | 'user'
-export type ProSubMode = 'multi' | 'variable'
 export type ImageSubMode = 'text2image' | 'image2image' | 'multiimage'
 
 export interface GlobalSettingsState {
@@ -29,7 +28,6 @@ export interface GlobalSettingsState {
 
   functionMode: FunctionMode
   basicSubMode: BasicSubMode
-  proSubMode: ProSubMode
   imageSubMode: ImageSubMode
 
   lastActiveAt: number
@@ -43,26 +41,15 @@ const createDefaultState = (): GlobalSettingsState => ({
   builtinTemplateLanguage: 'zh-CN',
   functionMode: 'basic',
   basicSubMode: 'system',
-  proSubMode: 'variable',
   imageSubMode: 'text2image',
   lastActiveAt: Date.now(),
 })
 
 const isFunctionMode = (value: unknown): value is FunctionMode =>
-  value === 'basic' || value === 'pro' || value === 'image'
+  value === 'basic' || value === 'image'
 
 const isBasicSubMode = (value: unknown): value is BasicSubMode =>
   value === 'system' || value === 'user'
-
-const isProSubMode = (value: unknown): value is ProSubMode =>
-  value === 'multi' || value === 'variable'
-
-const normalizeLegacyProSubMode = (value: unknown): ProSubMode | null => {
-  if (value === 'multi' || value === 'variable') return value
-  if (value === 'system') return 'multi'
-  if (value === 'user') return 'variable'
-  return null
-}
 
 const isImageSubMode = (value: unknown): value is ImageSubMode =>
   value === 'text2image' || value === 'image2image' || value === 'multiimage'
@@ -121,12 +108,6 @@ export const useGlobalSettings = defineStore('globalSettings', () => {
   const updateBasicSubMode = (mode: BasicSubMode) => {
     if (state.value.basicSubMode === mode) return
     state.value.basicSubMode = mode
-    touch()
-  }
-
-  const updateProSubMode = (mode: ProSubMode) => {
-    if (state.value.proSubMode === mode) return
-    state.value.proSubMode = mode
     touch()
   }
 
@@ -229,20 +210,6 @@ export const useGlobalSettings = defineStore('globalSettings', () => {
         if (isBasicSubMode(mode)) state.value.basicSubMode = mode
       }
 
-      if (shouldOverride(state.value.proSubMode, defaults.proSubMode)) {
-        const mode = await $services.preferenceService.get<string>(
-          UI_SETTINGS_KEYS.PRO_SUB_MODE,
-          ''
-        )
-        const normalized = normalizeLegacyProSubMode(mode)
-        if (normalized) {
-          state.value.proSubMode = normalized
-          if (mode !== normalized) {
-            await $services.preferenceService.set(UI_SETTINGS_KEYS.PRO_SUB_MODE, normalized)
-          }
-        }
-      }
-
       if (shouldOverride(state.value.imageSubMode, defaults.imageSubMode)) {
         const mode = await $services.preferenceService.get<string>(
           UI_SETTINGS_KEYS.IMAGE_SUB_MODE,
@@ -295,7 +262,6 @@ export const useGlobalSettings = defineStore('globalSettings', () => {
             basicSubMode: isBasicSubMode(parsed.basicSubMode)
               ? parsed.basicSubMode
               : defaults.basicSubMode,
-            proSubMode: normalizeLegacyProSubMode(parsed.proSubMode) ?? defaults.proSubMode,
             imageSubMode: isImageSubMode(parsed.imageSubMode)
               ? parsed.imageSubMode
               : defaults.imageSubMode,
@@ -312,7 +278,6 @@ export const useGlobalSettings = defineStore('globalSettings', () => {
             basicSubMode: isBasicSubMode(state.value.basicSubMode)
               ? state.value.basicSubMode
               : defaults.basicSubMode,
-            proSubMode: normalizeLegacyProSubMode(state.value.proSubMode) ?? defaults.proSubMode,
             imageSubMode: isImageSubMode(state.value.imageSubMode)
               ? state.value.imageSubMode
               : defaults.imageSubMode,
@@ -376,7 +341,6 @@ export const useGlobalSettings = defineStore('globalSettings', () => {
     updateBuiltinTemplateLanguage,
     updateFunctionMode,
     updateBasicSubMode,
-    updateProSubMode,
     updateImageSubMode,
 
     // 工具方法

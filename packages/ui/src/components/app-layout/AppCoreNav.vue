@@ -22,18 +22,8 @@
         <OptimizationModeSelectorUI
             v-if="functionMode === 'basic'"
             :modelValue="basicSubMode"
-            functionMode="basic"
             :allow-reselect="allowWorkspaceReselect"
             @change="handleBasicSubModeChange"
-        />
-
-        <!-- 子模式选择器 - 上下文模式 -->
-        <OptimizationModeSelectorUI
-            v-if="functionMode === 'pro'"
-            :modelValue="proSubMode"
-            functionMode="pro"
-            :allow-reselect="allowWorkspaceReselect"
-            @change="handleProSubModeChange"
         />
 
         <!-- 子模式选择器 - 图像模式 -->
@@ -55,9 +45,8 @@
  * 包含功能模式选择器和各模式的子模式选择器。
  *
  * @features
- * - 功能模式切换: Basic / Pro / Image
+ * - 功能模式切换: Basic / Image
  * - 基础模式子模式: system / user
- * - Pro 模式子模式: multi / variable
  * - 图像模式子模式: text2image / image2image / multiimage
  *
  * 🔧 路由架构：直接使用 router.push 进行导航
@@ -68,9 +57,11 @@ import { NSpace } from 'naive-ui'
 import FunctionModeSelector from '../FunctionModeSelector.vue'
 import OptimizationModeSelectorUI from '../OptimizationModeSelector.vue'
 import ImageModeSelector from '../image-mode/ImageModeSelector.vue'
-import type { FunctionMode, BasicSubMode, ProSubMode, ImageSubMode } from '@prompt-optimizer/core'
+import type { BasicSubMode, ImageSubMode } from '@prompt-optimizer/core'
 
-type SubMode = BasicSubMode | ProSubMode
+// 功能模式：已删除上下文模式（Pro），仅保留基础与图像模式
+type FunctionMode = 'basic' | 'image'
+type SubMode = BasicSubMode
 
 interface Props {
     workspacePath?: string
@@ -90,7 +81,6 @@ const activeWorkspacePath = computed(() => props.workspacePath || routerInstance
 const functionMode = computed<FunctionMode>(() => {
     const path = activeWorkspacePath.value
     if (path.startsWith('/basic')) return 'basic'
-    if (path.startsWith('/pro')) return 'pro'
     if (path.startsWith('/image')) return 'image'
     return 'basic' // 默认
 })
@@ -104,21 +94,6 @@ const basicSubMode = computed<BasicSubMode>(() => {
     }
 
     return 'system' // 默认值
-})
-
-const proSubMode = computed<ProSubMode>(() => {
-    const rawSubMode = activeWorkspacePath.value.split('/')[2]
-
-    // ✅ 标准值
-    if (rawSubMode === 'multi' || rawSubMode === 'variable') {
-        return rawSubMode as ProSubMode
-    }
-
-    // ✅ 兼容旧路由值：system/user -> multi/variable
-    if (rawSubMode === 'system') return 'multi'
-    if (rawSubMode === 'user') return 'variable'
-
-    return 'variable'
 })
 
 const imageSubMode = computed<ImageSubMode>(() => {
@@ -138,7 +113,6 @@ const imageSubMode = computed<ImageSubMode>(() => {
 // 🔧 各模式的默认子模式（避免跨模式污染）
 const DEFAULT_SUB_MODES = {
     basic: 'system',
-    pro: 'variable',
     image: 'text2image'
 } as const
 
@@ -162,12 +136,6 @@ const handleFunctionModeChange = (mode: FunctionMode) => {
 const handleBasicSubModeChange = (mode: SubMode) => {
     if (mode === 'system' || mode === 'user') {
         navigateToWorkspacePath(`/basic/${mode}`)
-    }
-}
-
-const handleProSubModeChange = (mode: SubMode) => {
-    if (mode === 'multi' || mode === 'variable') {
-        navigateToWorkspacePath(`/pro/${mode}`)
     }
 }
 

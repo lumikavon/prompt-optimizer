@@ -19,7 +19,6 @@ import {
   hydratePromptSessionWithOptimizationChain,
   promptRecordChainToOptimizationChain,
   type BasicSubMode,
-  type ProSubMode,
   type ImageSubMode,
   type PromptSession,
 } from '@prompt-optimizer/core'
@@ -27,8 +26,6 @@ import type { FunctionMode } from '../../composables/mode/useFunctionMode'
 import { getPiniaServices } from '../../plugins/pinia'
 import { useBasicSystemSession } from './useBasicSystemSession'
 import { useBasicUserSession } from './useBasicUserSession'
-import { useProMultiMessageSession } from './useProMultiMessageSession'
-import { useProVariableSession } from './useProVariableSession'
 import { useImageText2ImageSession } from './useImageText2ImageSession'
 import { useImageImage2ImageSession } from './useImageImage2ImageSession'
 import { useImageMultiImageSession } from './useImageMultiImageSession'
@@ -106,7 +103,6 @@ const resolveHydratableHistoryChainId = (session: PromptSession): string | undef
 export interface SubModeReaders {
   getFunctionMode: () => FunctionMode
   getBasicSubMode: () => BasicSubMode
-  getProSubMode: () => ProSubMode
   getImageSubMode: () => ImageSubMode
 }
 
@@ -158,9 +154,6 @@ export const useSessionManager = defineStore('sessionManager', () => {
       case 'basic':
         subMode = readers.getBasicSubMode()
         break
-      case 'pro':
-        subMode = readers.getProSubMode()
-        break
       case 'image':
         subMode = readers.getImageSubMode()
         break
@@ -178,7 +171,6 @@ export const useSessionManager = defineStore('sessionManager', () => {
   const computeSubModeKey = (
     mode: FunctionMode,
     basicSubMode: string,
-    proSubMode: string,
     imageSubMode: string
   ): SubModeKey => {
     let subMode: string
@@ -186,9 +178,6 @@ export const useSessionManager = defineStore('sessionManager', () => {
     switch (mode) {
       case 'basic':
         subMode = basicSubMode
-        break
-      case 'pro':
-        subMode = proSubMode
         break
       case 'image':
         subMode = imageSubMode
@@ -203,8 +192,6 @@ export const useSessionManager = defineStore('sessionManager', () => {
   const getProjectionStoreMap = (): PromptSessionProjectionStoreMap => ({
     'basic-system': useBasicSystemSession(),
     'basic-user': useBasicUserSession(),
-    'pro-multi': useProMultiMessageSession(),
-    'pro-variable': useProVariableSession(),
     'image-text2image': useImageText2ImageSession(),
     'image-image2image': useImageImage2ImageSession(),
     'image-multiimage': useImageMultiImageSession(),
@@ -259,11 +246,13 @@ export const useSessionManager = defineStore('sessionManager', () => {
 
     isSwitching.value = true
     try {
-      // 1. 保存旧模式会话
+      // 只保存旧模式会话，不恢复新模式会话。
+      // 各 session store 是常驻单例：启动时由 restoreAllSessions 统一恢复一次，
+      // 切换期间的修改都直接写回内存 store（工作区 computed 直接绑定），
+      // 目标 store 在切换时仍持有最新内存状态，无需（也不应）再从 IDB 覆盖。
+      // 此前在此处恢复 toKey 会与目标工作区挂载时的兜底种子（模型/模板）
+      // 竞争：种子先写好，restore 再用陈旧记录覆盖回去，导致按钮/选择被清空。
       await saveSubModeSession(fromKey)
-
-      // 2. 恢复新模式会话
-      await restoreSubModeSession(toKey)
     } catch (error) {
       console.error('[SessionManager] Failed to switch mode:', error)
     } finally {
@@ -283,11 +272,8 @@ export const useSessionManager = defineStore('sessionManager', () => {
 
     isSwitching.value = true
     try {
-      // 1. 保存旧子模式会话
+      // 与 switchMode 相同：只保存旧会话，不恢复目标会话。
       await saveSubModeSession(fromKey)
-
-      // 2. 恢复新子模式会话
-      await restoreSubModeSession(toKey)
     } catch (error) {
       console.error('[SessionManager] Failed to switch sub-mode:', error)
     } finally {
@@ -307,12 +293,6 @@ export const useSessionManager = defineStore('sessionManager', () => {
           break
         case 'basic-user':
           await useBasicUserSession().saveSession()
-          break
-        case 'pro-multi':
-          await useProMultiMessageSession().saveSession()
-          break
-        case 'pro-variable':
-          await useProVariableSession().saveSession()
           break
         case 'image-text2image':
           await useImageText2ImageSession().saveSession()
@@ -365,12 +345,6 @@ export const useSessionManager = defineStore('sessionManager', () => {
           break
         case 'basic-user':
           await useBasicUserSession().restoreSession()
-          break
-        case 'pro-multi':
-          await useProMultiMessageSession().restoreSession()
-          break
-        case 'pro-variable':
-          await useProVariableSession().restoreSession()
           break
         case 'image-text2image':
           await useImageText2ImageSession().restoreSession()

@@ -7,45 +7,23 @@
     class="optimization-mode-selector"
   >
     <!-- 基础模式：系统 | 用户 -->
-    <template v-if="functionMode !== 'pro'">
-      <NRadioButton
-        v-if="!hideSystemOption"
-        data-testid="sub-mode-system"
-        value="system"
-        :title="systemHelp"
-        @click="handleModeClick('system')"
-      >
-        {{ systemLabel }}
-      </NRadioButton>
-      <NRadioButton
-        data-testid="sub-mode-user"
-        value="user"
-        :title="userHelp"
-        @click="handleModeClick('user')"
-      >
-        {{ userLabel }}
-      </NRadioButton>
-    </template>
-    <!-- Pro 模式：变量 | 多对话 -->
-    <template v-else>
-      <NRadioButton
-        data-testid="sub-mode-variable"
-        value="variable"
-        :title="userHelp"
-        @click="handleModeClick('variable')"
-      >
-        {{ userLabel }}
-      </NRadioButton>
-      <NRadioButton
-        v-if="!hideSystemOption"
-        data-testid="sub-mode-multi"
-        value="multi"
-        :title="systemHelp"
-        @click="handleModeClick('multi')"
-      >
-        {{ systemLabel }}
-      </NRadioButton>
-    </template>
+    <NRadioButton
+      v-if="!hideSystemOption"
+      data-testid="sub-mode-system"
+      value="system"
+      :title="systemHelp"
+      @click="handleModeClick('system')"
+    >
+      {{ systemLabel }}
+    </NRadioButton>
+    <NRadioButton
+      data-testid="sub-mode-user"
+      value="user"
+      :title="userHelp"
+      @click="handleModeClick('user')"
+    >
+      {{ userLabel }}
+    </NRadioButton>
   </NRadioGroup>
 </template>
 
@@ -53,19 +31,14 @@
 import { computed } from 'vue'
 import { NRadioGroup, NRadioButton } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
-import type { BasicSubMode, ProSubMode } from '@prompt-optimizer/core'
-import type { FunctionMode } from '../composables/mode'
+import type { BasicSubMode } from '@prompt-optimizer/core'
 
-const { t } = useI18n()
-
-type SubMode = BasicSubMode | ProSubMode
+type SubMode = BasicSubMode
 
 interface Props {
   modelValue: SubMode
   /** 是否隐藏系统提示词选项（用于临时禁用功能） */
   hideSystemOption?: boolean
-  /** 当前功能模式，用于决定显示文案 */
-  functionMode?: FunctionMode
   allowReselect?: boolean
 }
 
@@ -76,34 +49,27 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   hideSystemOption: false,
-  functionMode: 'basic',
   allowReselect: false,
 })
 const emit = defineEmits<Emits>()
 
-// 根据功能模式动态获取按钮文本
+const { t } = useI18n()
+
+// 根据功能模式动态获取按钮文本（上下文模式已删除，恒为基础模式文案）
 const systemLabel = computed(() => {
-  return props.functionMode === 'pro'
-    ? t('contextMode.optimizationMode.message')
-    : t('promptOptimizer.systemPrompt')
+  return t('promptOptimizer.systemPrompt')
 })
 
 const userLabel = computed(() => {
-  return props.functionMode === 'pro'
-    ? t('contextMode.optimizationMode.variable')
-    : t('promptOptimizer.userPrompt')
+  return t('promptOptimizer.userPrompt')
 })
 
 const systemHelp = computed(() => {
-  return props.functionMode === 'pro'
-    ? t('contextMode.system.tooltip')
-    : t('promptOptimizer.systemPromptHelp')
+  return t('promptOptimizer.systemPromptHelp')
 })
 
 const userHelp = computed(() => {
-  return props.functionMode === 'pro'
-    ? t('contextMode.user.tooltip')
-    : t('promptOptimizer.userPromptHelp')
+  return t('promptOptimizer.userPromptHelp')
 })
 
 /**

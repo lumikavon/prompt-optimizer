@@ -24,18 +24,10 @@ export const parseSubModeKey = (path: string): SubModeKey | null => {
  * 3. 兼容旧 pro 路由（/pro/system|/pro/user）
  */
 export const beforeRouteSwitch: NavigationGuard = (to) => {
-  // ✅ 兼容旧 pro 路由（/pro/system|/pro/user -> /pro/multi|/pro/variable）
-  if (to.path === '/pro/system') {
-    return { path: '/pro/multi', query: to.query, hash: to.hash }
-  }
-  if (to.path === '/pro/user') {
-    return { path: '/pro/variable', query: to.query, hash: to.hash }
-  }
-
   const subModeKey = parseSubModeKey(to.path)
 
   if (subModeKey === null && to.path !== '/') {
-    const match = to.path.match(/^\/(basic|pro|image)(\/|$)/)
+    const match = to.path.match(/^\/(basic|image)(\/|$)/)
     if (match) {
       const mode = match[1] as WorkspaceMode
 

@@ -166,13 +166,30 @@ const loadModelOptions = async () => {
   fetchError.value = ''
 
   try {
-    const fetched = config.providerMeta.supportsDynamicModels
-      ? await services.llmService.fetchModelList(config.providerMeta.id, config)
-      : []
+    // 优先使用 models 接口（已启用的模型配置）作为选项来源：
+    // 与主选择器共享同一数据源，保证快速切换与主下拉一致。
+    const fromModelsInterface = props.options
+      .filter((option) => option.raw?.providerMeta?.id === config.providerMeta.id)
+      .map((option) => ({
+        value: option.raw.modelMeta?.id || '',
+        label: option.raw.modelMeta?.name || option.raw.modelMeta?.id || '',
+      }))
+      .filter((option) => Boolean(option.value))
 
-    const dynamicOptions = normalizeOptions(fetched)
-    const staticOptions = getStaticOptions(services.textAdapterRegistry)
-    modelOptions.value = ensureCurrentOption(dynamicOptions.length ? dynamicOptions : staticOptions)
+    let options: SelectOption[]
+    if (fromModelsInterface.length) {
+      options = fromModelsInterface
+    } else {
+      const fetched = config.providerMeta.supportsDynamicModels
+        ? await services.llmService.fetchModelList(config.providerMeta.id, config)
+        : []
+
+      const dynamicOptions = normalizeOptions(fetched)
+      const staticOptions = getStaticOptions(services.textAdapterRegistry)
+      options = dynamicOptions.length ? dynamicOptions : staticOptions
+    }
+
+    modelOptions.value = ensureCurrentOption(options)
   } catch (error) {
     fetchError.value = error instanceof Error ? error.message : String(error)
     modelOptions.value = ensureCurrentOption(getStaticOptions(services.textAdapterRegistry))

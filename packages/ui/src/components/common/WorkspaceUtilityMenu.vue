@@ -3,14 +3,6 @@
     class="workspace-utility-button-column"
     :style="triggerStyle"
   >
-    <SourceAssetBadge
-      v-if="source"
-      :source="source"
-      button-size="small"
-      button-variant="secondary"
-      button-class="workspace-utility-button"
-    />
-
     <ThemedTooltip
       v-if="isPromptGardenEnabled"
       :label="t('common.promptGarden.title')"
@@ -110,7 +102,6 @@ import { NButton, NDropdown, NIcon, NModal, type DropdownOption } from 'naive-ui
 import { Bookmark, ClearAll, DotsVertical, ExternalLink, Plant2, FileImport } from '@vicons/tabler'
 import { useI18n } from 'vue-i18n'
 import { getEnvVar } from '@prompt-optimizer/core'
-import SourceAssetBadge from '../source/SourceAssetBadge.vue'
 import PromptGardenImportDialog from './PromptGardenImportDialog.vue'
 import ThemedTooltip from './ThemedTooltip.vue'
 import { openExternalUrl } from '../../utils/open-external-url'

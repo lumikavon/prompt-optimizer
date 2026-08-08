@@ -36,7 +36,10 @@ export const createWorkspaceRouteSwitchController = (options: WorkspaceRouteSwit
     }
 
     const executeSwitch = async () => {
-      const actualFromKey = options.getActiveSubModeKey() ?? fromKey
+      // ⚠️ 必须用 fromPath 解析出的旧 key，不能重新读 getActiveSubModeKey()。
+      // 路由 watcher 在路由已变更后才触发，此时 getActiveSubModeKey() 返回的是「新」key，
+      // 会导致 actualFromKey === toKey 提前 return，保存/恢复事务被整体跳过。
+      const actualFromKey = fromKey
       if (!actualFromKey || actualFromKey === toKey) return
 
       const fromMode = getModeFromSubModeKey(actualFromKey)
