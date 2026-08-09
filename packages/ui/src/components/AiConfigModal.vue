@@ -139,10 +139,12 @@ const electronAPI = (window as unknown as { electronAPI?: { aiConfig?: AiConfigA
 const isDesktop = Boolean(electronAPI?.aiConfig)
 
 const isVisible = ref(props.modelValue)
-watch(() => props.modelValue, (newVal) => {
+watch(() => props.modelValue, async (newVal) => {
     isVisible.value = newVal
     if (newVal && isDesktop) {
-        void loadConfig()
+        // 先读取已保存配置再加载模型列表，避免在 api_key/base_url 尚未填充时
+        // 用空 key 请求 models 接口（网关会以 401 拒绝，见 main.js ai-config-fetchModels）
+        await loadConfig()
         void loadModelOptions()
     }
 })
@@ -188,11 +190,14 @@ const loadModelOptions = async () => {
     loadingModels.value = true
     try {
         let list: AiModelOption[] = []
-        // 主路径：下拉时通过 models 接口获取可用模型（使用表单中的 base_url/api_key）
-        if (electronAPI?.aiConfig?.fetchModels) {
+        const baseUrl = form.base_url?.trim()
+        const apiKey = form.api_key?.trim()
+        // 主路径：下拉时通过 models 接口获取可用模型（使用表单中的 base_url/api_key）。
+        // 仅在至少提供一个连接字段时才请求，避免空 key 请求被网关以 401 拒绝。
+        if (electronAPI?.aiConfig?.fetchModels && (baseUrl || apiKey)) {
             const fetched = await electronAPI.aiConfig.fetchModels({
-                base_url: form.base_url?.trim() || undefined,
-                api_key: form.api_key?.trim() || undefined,
+                base_url: baseUrl || undefined,
+                api_key: apiKey || undefined,
             })
             list = (fetched ?? []).map((m) => ({ value: m.value, label: m.label }))
         }

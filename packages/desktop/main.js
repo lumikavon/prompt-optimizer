@@ -643,8 +643,8 @@ function createWindow() {
   ipcMain.removeHandler('ai-config-fetchModels');
   ipcMain.handle('ai-config-fetchModels', async (event, config) => {
     try {
-      const baseURL = (config && (config.base_url || config.baseURL)) || '';
-      const apiKey = (config && (config.api_key || config.apiKey)) || '';
+      const baseURL = (config && (config.base_url || config.baseURL)) || aiConfig?.base_url || '';
+      const apiKey = (config && (config.api_key || config.apiKey)) || aiConfig?.api_key || '';
       const model = (config && config.model) || aiConfig?.model || '';
       // 以传统 ModelConfig 结构传入，buildEffectiveModelConfig 会合并 base_url/api_key 并解析 provider/model 元数据
       const result = await llmService.fetchModelList('openai-compatible', {
