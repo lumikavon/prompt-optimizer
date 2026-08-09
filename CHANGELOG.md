@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.12.0] - 2026-08-08
+- EN: This minor release refactors the workspace model (removing the legacy context mode and favorites library, keeping Basic and Image modes), adds image attachments to Basic/System workspaces, ships an in-app AI configuration manager for the desktop app, and makes the whole UI responsive. See [Release Notes (EN)](releases/v2.12.0.en.md).
+- 中文：本次小版本发布重构工作区模型（移除旧的上下文模式与收藏库，保留基础与图像模式），为基础/系统工作区新增图片附件，桌面端新增应用内 AI 配置管理，并将整个界面改为响应式布局。参见 [版本说明（中文）](releases/v2.12.0.zh-CN.md)。
+
 ## [2.11.7] - 2026-06-22
 - EN: This patch restores desktop page zoom shortcuts, adds a dedicated `/healthz` endpoint for container probes, and switches Docker MCP startup to `node server.js` to avoid `pnpm verify-deps` crashes. See [Release Notes (EN)](releases/v2.11.7.en.md).
 - 中文：本次补丁恢复桌面端页面缩放快捷键，新增容器探活专用 `/healthz` 端点，并将 Docker 中的 MCP 启动切换为 `node server.js` 以规避 `pnpm verify-deps` 崩溃。参见 [版本说明（中文）](releases/v2.11.7.zh-CN.md)。

@@ -24,7 +24,7 @@
 
 Prompt Optimizer is a powerful AI prompt optimization tool that helps you write better AI prompts and improve the quality of AI outputs. It supports four usage methods: web application, desktop application, Chrome extension, and Docker deployment.
 
-Prompts can start from manual writing, templates, local imports, or sources such as [Prompt Garden](https://garden.always200.com). Prompt Optimizer is where those prompts are optimized, tested, evaluated, and saved as reusable prompt assets.
+Prompts can start from manual writing, templates, local imports, or sources such as [Prompt Garden](https://garden.always200.com). Prompt Optimizer is where those prompts are optimized, tested, evaluated, and reused.
 
 ### 🎥 Feature Demonstration
 
@@ -35,7 +35,7 @@ Prompts can start from manual writing, templates, local imports, or sources such
   <br>
   <p><b>2. Marketplace Bargaining Reply: Let Variables Change the Strategy</b></p>
   <p>With a single reusable prompt template, you can swap in item details, price anchors, buyer offers, tone, and negotiation goals for different marketplace conversations. After optimization, the same small model does a better job turning those variables into a clearer, more transaction-ready reply instead of a generic helper-style response.</p>
-  <img src="images/demo/pro-variable-bargaining-reply-en.png" alt="Marketplace bargaining reply variable-mode demo" width="85%">
+  <img src="images/demo/pro-variable-bargaining-reply-en.png" alt="Marketplace bargaining reply template demo" width="85%">
   <br>
   <p><b>3. Text-to-Image: Optimize a One-Line Idea into a More Directable Key Visual Prompt</b></p>
   <p>This is not just prompt expansion. Starting from a vague one-line idea, Prompt Optimizer adds clearer subject cues, spatial relationships, and mood anchors. The left side is simply “a floating library in the night sky,” while the optimized version gives the model a more directed fantasy composition that feels closer to a reusable key visual than a lucky generic image.</p>
@@ -45,13 +45,12 @@ Prompts can start from manual writing, templates, local imports, or sources such
 ## ✨ Core Features
 
 - 🎯 **Intelligent Optimization**: One-click prompt optimization with multi-round iterative improvements to enhance AI response accuracy
-- 📝 **Dual Mode Optimization**: Support for both system prompt optimization and user prompt optimization to meet different usage scenarios
+- 📝 **Basic Mode**: Dual optimization targets — system prompt optimization and user prompt optimization — for role-playing, tone, workflow, and general task prompts
+- 🖼️ **Image Mode**: Text-to-Image (T2I), Image-to-Image (I2I), and Multi-Image generation with variable-aware inputs, multi-column test variants, and style transfer from reference images
 - 🔄 **Analysis and Compare Evaluation**: Supports analysis, single-result evaluation, and multi-result compare evaluation to help determine whether a prompt has truly improved
 - 🤖 **Multi-model Integration**: Support for mainstream AI models including OpenAI, Gemini, DeepSeek, Grok, Zhipu AI, SiliconFlow, MiniMax, etc.
-- 🖼️ **Image Generation**: Support for Text-to-Image (T2I), Image-to-Image (I2I), and Multi-Image generation with models like Gemini, Seedream, Grok
 - 🌱 **Prompt Sources**: Start from manual writing, templates, local imports, or Prompt Garden import codes
-- ⭐ **Smart Favorites**: Resource-aware prompt assets with version history, reproducible examples, media support, source binding, and workspace application
-- 📊 **Advanced Testing Mode**: Context variable management, multi-turn conversation testing, Function Calling support
+- 🛠️ **Function Calling Support**: Configure function-calling capable models (OpenAI, Gemini, etc.) and define tool schemas for your prompt workflow
 - 🔒 **Secure Architecture**: Pure client-side processing with direct data interaction with AI service providers, bypassing intermediate servers
 - 📱 **Multi-platform Support**: Available as web application, desktop application, Chrome extension, and Docker deployment
 - 🔐 **Access Control**: Password protection feature for secure deployment
@@ -68,18 +67,16 @@ Prompts can start from manual writing, templates, local imports, or sources such
 - 📥 **Preview & Download**: Real-time preview of generated results with download support
 - 🔄 **Style Transfer**: Learn style, composition, and color from reference images
 
-### Prompt Sources & Smart Favorites
+### Prompt Sources & Templates
 - 🌱 **Optional Prompt Sources**: Bring prompts from manual writing, templates, local files, or [Prompt Garden](https://garden.always200.com)
-- 📥 **Import & Collect**: Import prompts with metadata, media, examples, and source binding when available
-- ⭐ **Resource-aware Assets**: Save stable prompts as reusable favorites with version history
-- 🔗 **Source Binding**: Track prompt origins and maintain reproducible examples without requiring a specific source
-- 📦 **Complete Backup**: Export and import favorites with all referenced resources
+- 📥 **Import & Collect**: Import prompts with metadata, media, and examples when available
+- 📝 **Template Management**: Manage reusable prompt templates with variable placeholders for batch personalization
 
-### Advanced Testing Mode
-- 📊 **Context Variable Management**: Custom variables, batch replacement, variable preview
-- 💬 **Multi-turn Conversation Testing**: Simulate real conversation scenarios to test prompt performance in multi-turn interactions
+### Image Mode Testing
+- 📊 **Variable-aware Input**: Define variables in the prompt and fill them per generation with automatic batch replacement and preview
+- 🧪 **Multi-column Test Variants**: Run 2–4 columns of test variants side by side (each with its own version/model) and compare outputs directly
+- 🔍 **Analysis and Evaluation Pipeline**: Supports analysis, evaluation, compare evaluation, and evaluation-driven smart rewrite
 - 🛠️ **Function Calling Support**: Function Calling integration with support for OpenAI and Gemini tool calling
-- 🔍 **Analysis and Evaluation Pipeline**: Supports analysis, evaluation, compare evaluation, and evaluation-driven smart rewrite in text modes
 
 For detailed usage instructions, please refer to the [Image Mode Documentation](docs/image-mode.md)
 
@@ -350,9 +347,9 @@ pnpm dev:fresh        # Complete reset and restart development environment
 - [x] Support for system prompt optimization and user prompt optimization
 - [x] Desktop application release
 - [x] MCP service release
-- [x] Advanced mode: Variable management, context testing, function calling
-- [x] Image generation: Text-to-Image (T2I) and Image-to-Image (I2I) support
-- [x] Prompt favorites and template management
+- [x] Image generation: Text-to-Image (T2I), Image-to-Image (I2I), and Multi-Image support
+- [x] Variable-aware inputs and multi-column test variants in Image mode
+- [x] Prompt templates and Function Calling configuration
 - [ ] Support for workspace/project management
 
 For detailed project status, see [Project Status Document](docs/project/project-status.md)
