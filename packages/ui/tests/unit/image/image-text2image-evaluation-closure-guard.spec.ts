@@ -16,13 +16,12 @@ describe('image text2image evaluation closure guard', () => {
     expect(source).toContain(':can-rewrite-from-evaluation="false"')
   })
 
-  it('wires result and compare evaluation actions to the current evaluation handlers', () => {
+  it('wires the evaluation panel to the active prompt evaluation handlers', () => {
     const source = readWorkspaceSource()
 
-    expect(source).toContain('@evaluate="handleEvaluateCompare"')
-    expect(source).toContain('@evaluate-with-feedback="handleCompareEvaluateWithFeedback"')
-    expect(source).toContain("@evaluate=\"() => handleEvaluateResult(id)\"")
-    expect(source).toContain('@evaluate-with-feedback="handleResultEvaluateWithFeedbackEvent(id, $event)"')
+    expect(source).toContain('@re-evaluate="handleReEvaluateActive"')
+    expect(source).toContain('@evaluate-with-feedback="handleEvaluateActiveWithFeedback"')
+    expect(source).toContain(':can-rewrite-from-evaluation="false"')
   })
 
   it('routes original-input analysis through reference actions and keeps prompt analysis wired', () => {

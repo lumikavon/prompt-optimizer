@@ -46,8 +46,8 @@ Prompts can start from manual writing, templates, local imports, or sources such
 
 - 🎯 **Intelligent Optimization**: One-click prompt optimization with multi-round iterative improvements to enhance AI response accuracy
 - 📝 **Basic Mode**: Dual optimization targets — system prompt optimization and user prompt optimization — for role-playing, tone, workflow, and general task prompts
-- 🖼️ **Image Mode**: Text-to-Image (T2I), Image-to-Image (I2I), and Multi-Image generation with variable-aware inputs, multi-column test variants, and style transfer from reference images
-- 🔄 **Analysis and Compare Evaluation**: Supports analysis, single-result evaluation, and multi-result compare evaluation to help determine whether a prompt has truly improved
+- 🖼️ **Image Mode**: Text-to-Image (T2I), Image-to-Image (I2I), and Multi-Image workspaces for composing and optimizing image prompts with variable-aware inputs and reference images
+- 🔄 **Analysis and Evaluation**: Analyze prompts, evaluate results with feedback, and rewrite prompts from evaluation results to help determine whether a prompt has truly improved
 - 🤖 **Multi-model Integration**: Support for mainstream AI models including OpenAI, Gemini, DeepSeek, Grok, Zhipu AI, SiliconFlow, MiniMax, etc.
 - 🌱 **Prompt Sources**: Start from manual writing, templates, local imports, or Prompt Garden import codes
 - 🛠️ **Function Calling Support**: Configure function-calling capable models (OpenAI, Gemini, etc.) and define tool schemas for your prompt workflow
@@ -58,25 +58,20 @@ Prompts can start from manual writing, templates, local imports, or sources such
 
 ## 🚀 Advanced Features
 
-### Image Generation Mode
-- 🖼️ **Text-to-Image (T2I)**: Generate images from text prompts
-- 🎨 **Image-to-Image (I2I)**: Transform and optimize images based on local files
-- 🖼️ **Multi-Image Generation**: Use multiple input images to constrain subject relationships, sequential semantics, and final generation goals
-- 🔌 **Multi-model Support**: Integrated with mainstream image generation models like Gemini, Seedream, Grok
-- ⚙️ **Model Parameters**: Support model-specific parameter configuration (size, style, etc.)
-- 📥 **Preview & Download**: Real-time preview of generated results with download support
-- 🔄 **Style Transfer**: Learn style, composition, and color from reference images
+### Image Mode
+- 🖼️ **Text-to-Image (T2I)**: Compose prompts that steer text-to-image models
+- 🎨 **Image-to-Image (I2I)**: Compose prompts with a local reference image for style and content guidance
+- 🖼️ **Multi-Image**: Use multiple input images to constrain subject relationships, ordering semantics, and the final generation goal
+- 🔌 **Multi-model Support**: Integrated with mainstream AI models for prompt optimization, including Gemini, Seedream, Grok
+- 📊 **Variable-aware Input**: Define variables in the prompt and preview how they resolve before optimizing
+- 📝 **Templates & Models**: Reuse prompt templates and choose the optimization model per workspace
+- 🔍 **Analysis and Evaluation Pipeline**: Supports analysis, evaluation, evaluation-with-feedback, and evaluation-driven smart rewrite
+- 🛠️ **Function Calling Support**: Function Calling integration with support for OpenAI and Gemini tool calling
 
 ### Prompt Sources & Templates
 - 🌱 **Optional Prompt Sources**: Bring prompts from manual writing, templates, local files, or [Prompt Garden](https://garden.always200.com)
 - 📥 **Import & Collect**: Import prompts with metadata, media, and examples when available
 - 📝 **Template Management**: Manage reusable prompt templates with variable placeholders for batch personalization
-
-### Image Mode Testing
-- 📊 **Variable-aware Input**: Define variables in the prompt and fill them per generation with automatic batch replacement and preview
-- 🧪 **Multi-column Test Variants**: Run 2–4 columns of test variants side by side (each with its own version/model) and compare outputs directly
-- 🔍 **Analysis and Evaluation Pipeline**: Supports analysis, evaluation, compare evaluation, and evaluation-driven smart rewrite
-- 🛠️ **Function Calling Support**: Function Calling integration with support for OpenAI and Gemini tool calling
 
 For detailed usage instructions, please refer to the [Image Mode Documentation](docs/image-mode.md)
 
@@ -348,7 +343,7 @@ pnpm dev:fresh        # Complete reset and restart development environment
 - [x] Desktop application release
 - [x] MCP service release
 - [x] Image generation: Text-to-Image (T2I), Image-to-Image (I2I), and Multi-Image support
-- [x] Variable-aware inputs and multi-column test variants in Image mode
+- [x] Variable-aware inputs in Image mode
 - [x] Prompt templates and Function Calling configuration
 - [ ] Support for workspace/project management
 

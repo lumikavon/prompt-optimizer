@@ -9,34 +9,6 @@ const readWorkspaceSource = () =>
   )
 
 describe('image multiimage workspace guards', () => {
-  it('uses the standard variant test area controls', () => {
-    const source = readWorkspaceSource()
-
-    expect(source).toMatch(/<TemporaryVariablesPanel[\s>]/)
-    expect(source).toMatch(/:show-generate-values="true"/)
-    expect(source).toMatch(/@generate-values="handleGenerateValues"/)
-    expect(source).toMatch(/<NRadioGroup[\s>]/)
-    expect(source).toMatch(/<NRadioButton[\s>]/)
-    expect(source).toMatch(/<TestPanelVersionSelect[\s>]/)
-    expect(source).toMatch(/<VariableValuePreviewDialog[\s>]/)
-    expect(source).toMatch(/<ImageTokenUsage[\s>]/)
-    expect(source).toMatch(/runAllVariants/)
-    expect(source).toMatch(/runVariant/)
-    expect(source).toMatch(/getVariantLabel/)
-    expect(source).toMatch(/variant-cell__controls--stacked/)
-    expect(source).toMatch(/circle/)
-    expect(source).not.toMatch(/Variant \$\{id\.toUpperCase\(\)\}/)
-  })
-
-  it('stores ordered multi-image input metadata and passes it into token usage display', () => {
-    const source = readWorkspaceSource()
-
-    expect(source).toMatch(/createVariantInputImagesInfo/)
-    expect(source).toMatch(/withVariantInputImagesInfo/)
-    expect(source).toMatch(/inputImagesInfo/)
-    expect(source).toMatch(/:input-images-info="getVariantInputImagesInfo\(id\)"/)
-  })
-
   it('persists layout changes through the session save queue', () => {
     const source = readWorkspaceSource()
 
@@ -61,7 +33,6 @@ describe('image multiimage workspace guards', () => {
     const source = readWorkspaceSource()
 
     expect(source).toMatch(/handleTemplateSelectFocus/)
-    expect(source).toMatch(/handleTextModelSelectFocus/)
     expect(source).toMatch(/image-workspace-refresh-iterate-select/)
     expect(source).toMatch(/image-workspace-refresh-text-models/)
     expect(source).toMatch(/image-workspace-refresh-image-models/)

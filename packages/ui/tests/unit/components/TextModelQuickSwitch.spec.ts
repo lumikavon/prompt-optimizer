@@ -120,7 +120,10 @@ const createOption = (config: TextModelConfig): ModelSelectOption => ({
   raw: config,
 })
 
-const mountComponent = (config = createConfig()) => {
+const mountComponent = (
+  config = createConfig(),
+  options: ModelSelectOption[] = [createOption(config)],
+) => {
   const updateModel = vi.fn().mockResolvedValue(undefined)
   const fetchModelList = vi.fn().mockResolvedValue([
     { value: 'model-b', label: 'Model B' },
@@ -155,7 +158,7 @@ const mountComponent = (config = createConfig()) => {
   const wrapper = mount(TextModelQuickSwitch, {
     props: {
       modelKey: config.id,
-      options: [createOption(config)],
+      options,
       refreshModels,
     },
     global: {
@@ -202,20 +205,43 @@ describe('TextModelQuickSwitch', () => {
     )
   })
 
-  it('fetches available models and updates model identity on the selected config', async () => {
-    const { wrapper, updateModel, fetchModelList, refreshModels, config } = mountComponent()
+  it('prefers models-interface options for the selected provider without fetching', async () => {
+    const { wrapper, fetchModelList } = mountComponent()
 
     await wrapper.get('[data-testid="quick-switch-trigger"]').trigger('click')
     await flushPromises()
 
-    expect(fetchModelList).toHaveBeenCalledWith('custom', expect.objectContaining({
-      id: 'config-1',
-      connectionConfig: expect.objectContaining({
-        customHeaders: expect.objectContaining({
-          'x-auth-token': 'token',
-        }),
-      }),
-    }))
+    // The selected provider is already present in the models interface, so the
+    // quick switch shares the main selector's data source and skips the dynamic fetch.
+    expect(fetchModelList).not.toHaveBeenCalled()
+    expect(wrapper.findAll('option').map((option) => option.attributes('value'))).toEqual([
+      'model-a',
+    ])
+  })
+
+  it('switches to another model of the same provider from the models interface', async () => {
+    const configA = createConfig()
+    const configB = createConfig()
+    configB.id = 'config-2'
+    configB.modelMeta = {
+      ...configB.modelMeta,
+      id: 'model-b',
+      name: 'Model B',
+      providerId: 'custom',
+    }
+
+    const { wrapper, updateModel, refreshModels } = mountComponent(configA, [
+      createOption(configA),
+      createOption(configB),
+    ])
+
+    await wrapper.get('[data-testid="quick-switch-trigger"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findAll('option').map((option) => option.attributes('value'))).toEqual([
+      'model-a',
+      'model-b',
+    ])
 
     await wrapper.get('[data-testid="quick-switch-select"]').setValue('model-b')
     await flushPromises()
@@ -225,7 +251,7 @@ describe('TextModelQuickSwitch', () => {
       modelMeta: expect.objectContaining({
         id: 'model-b',
         name: 'Model B',
-        providerId: config.providerMeta.id,
+        providerId: configA.providerMeta.id,
       }),
     })
     expect(refreshModels).toHaveBeenCalled()

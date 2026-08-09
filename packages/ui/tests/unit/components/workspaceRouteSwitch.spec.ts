@@ -129,7 +129,7 @@ describe('createWorkspaceRouteSwitchController', () => {
     })
 
     const first = controller.run('/pro/variable', '/basic/system')
-    const second = controller.run('/image/text2image', '/basic/system')
+    const second = controller.run('/image/text2image', '/pro/variable')
 
     await flushSwitchQueue()
 

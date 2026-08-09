@@ -13,7 +13,7 @@ describe('image multiimage input UI guards', () => {
     const source = readWorkspaceSource()
 
     expect(source).toMatch(/ref="splitRootRef"/)
-    expect(source).toMatch(/:style="\{ gridTemplateColumns: `\$\{mainSplitLeftPct\}% 12px 1fr` \}"/)
+    expect(source).toMatch(/:style="\{ gridTemplateColumns: splitGridTemplateColumns \}"/)
     expect(source).toMatch(/class="split-divider"/)
     expect(source).toMatch(/@pointerdown="onSplitPointerDown"/)
     expect(source).toMatch(/@keydown="onSplitKeydown"/)
