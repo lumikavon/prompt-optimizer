@@ -2,6 +2,10 @@
 
 Full release narratives now live in versioned files under `releases/`. This file stays as the index and summary entry point.
 
+## [2.12.1] - 2026-08-09
+- EN: This patch fixes a 401 "Invalid token" error in the desktop AI configuration modal by loading saved provider config before fetching model options, skipping the models request when no connection fields are set, and falling back to loaded values in the IPC handler. See [Release Notes (EN)](releases/v2.12.1.en.md).
+- 中文：本次补丁修复桌面端 AI 配置弹窗的 401「Invalid token」问题：先加载已保存的供应商配置再获取模型选项，未设置连接字段时跳过模型请求，并在 IPC 处理器中回退到已加载的配置。参见 [版本说明（中文）](releases/v2.12.1.zh-CN.md)。
+
 ## [2.12.0] - 2026-08-08
 - EN: This minor release refactors the workspace model (removing the legacy context mode, favorites library, and the multi-column test deck, keeping Basic and Image modes), keeps image-reference inputs in Image mode, ships an in-app AI configuration manager for the desktop app, and makes the whole UI responsive. See [Release Notes (EN)](releases/v2.12.0.en.md).
 - 中文：本次小版本发布重构工作区模型（移除旧的上下文模式、收藏库与多列测试区，保留基础与图像模式），图像模式保留参考图输入，桌面端新增应用内 AI 配置管理，并将整个界面改为响应式布局。参见 [版本说明（中文）](releases/v2.12.0.zh-CN.md)。
