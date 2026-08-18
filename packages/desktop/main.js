@@ -48,6 +48,11 @@ const {
   applyPageZoomAction,
   getPageZoomActionFromDirection,
 } = require('./config/page-zoom');
+const {
+  buildLoginItemSettings,
+  removeLegacyDevelopmentLoginItem,
+  shouldManageSystemAutoLaunch,
+} = require('./config/login-item-settings');
 const { setupRemoteStorageHandlers } = require('./remote-storage');
 const { loadAiConfig, applyAiConfigToEnv, getLastLoadSummary, readAiConfig, saveAiConfig } = require('./config/ai-config');
 const path = require('path');
@@ -950,16 +955,36 @@ async function getAutoLaunchSetting() {
  * - Linux：通过桌面文件（~/.config/autostart）实现
  */
 async function syncLoginItemSettings() {
+  if (!shouldManageSystemAutoLaunch({ isPackaged: app.isPackaged })) {
+    console.log('[Tray] Skipping system auto-launch registration for an unpackaged build');
+    return;
+  }
+
   const enabled = await getAutoLaunchSetting();
   const silent = await getSilentStartSetting();
   const appName = 'PromptOptimizer';
 
   if (process.platform === 'win32' || process.platform === 'darwin') {
     try {
+      if (process.platform === 'win32') {
+        try {
+          const removedLegacyItem = await removeLegacyDevelopmentLoginItem();
+          if (removedLegacyItem) {
+            console.log('[Tray] Removed legacy development auto-launch entry: electron.app.Electron');
+          }
+        } catch (error) {
+          console.warn('[Tray] Failed to clean up legacy development auto-launch entries:', error.message);
+        }
+      }
+
       app.setLoginItemSettings({
-        openAtLogin: enabled,
-        openAsHidden: silent, // macOS 支持
-        args: silent ? ['--hidden'] : [], // Windows：自启动时附加静默参数
+        ...buildLoginItemSettings({
+          isPackaged: app.isPackaged,
+          platform: process.platform,
+          execPath: process.execPath,
+          enabled,
+          silent,
+        }),
       });
       console.log(`[Tray] 开机自启动已${enabled ? '开启' : '关闭'}（静默启动: ${silent ? '是' : '否'}）`);
     } catch (error) {
@@ -1017,9 +1042,10 @@ async function ensureDefaultTraySettings() {
     const autoLaunch = await preferenceService.get(TRAY_SETTING_KEYS.AUTO_LAUNCH, null);
     if (autoLaunch === null) {
       await preferenceService.set(TRAY_SETTING_KEYS.AUTO_LAUNCH, true);
-      await syncLoginItemSettings();
       console.log('[Tray] 首次运行：已按默认配置开启开机自启动（静默启动）');
     }
+    // 每次启动都校准当前可执行文件，并迁移旧开发版本遗留的错误登录项。
+    await syncLoginItemSettings();
   } catch (error) {
     console.warn('[Tray] Failed to apply default tray settings:', error.message);
   }
